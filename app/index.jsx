@@ -1,30 +1,18 @@
 import { useRouter } from "expo-router";
 import { Text, View, TouchableOpacity } from "react-native";
+import ScreenWrapper from "../components/ScreenWrapper";
+
 
 export default function Index() {
   const router = useRouter();
   return (
-    <View
-      style={{
-        flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
-      }}
-    >
-      <Text>Edit app/index.tsx to edit this screen.</Text>
-      <TouchableOpacity
-        onPress={() => {
-          router.push("/details");
-        }}
-        style={{
-          marginTop: 20,
-          padding: 10,
-          backgroundColor: "blue",
-          borderRadius: 5,
-        }}
-      >
-        <Text style={{ color: "white" }}>Press me</Text>
+    <ScreenWrapper>
+    <View style={{flex:1,justifyContent:'center',alignItems:'center'}}>
+      <Text>Index</Text>
+      <TouchableOpacity onPress={() => router.push('/Welcome')} style={{marginTop:20,padding:10,backgroundColor:'blue'}}>
+        <Text style={{color:'white'}}>Go to Welcome</Text>
       </TouchableOpacity>
-    </View>
+      </View>
+      </ScreenWrapper>
   );
 }
