@@ -1,11 +1,11 @@
 import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
-import ScreenWrapper from "../components/ScreenWrapper";
+import ScreenWrapper from "../../components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
-import { wp, hp } from "../helpers/common";
-import WelcomeImage from "../assets/images/welcome.png";
+import { wp, hp } from "../../helpers/common";
+import WelcomeImage from "../../assets/images/welcome.png";
 import { Image } from "expo-image";
-import { theme } from "../constants/theme";
-import Button from "../components/Button";
+import { theme } from "../../constants/theme";
+import Button from "../../components/Button";
 import { useRouter } from "expo-router";
 
 const Welcome = () => {
