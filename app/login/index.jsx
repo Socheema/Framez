@@ -1,131 +1,205 @@
-import { useState } from "react";
+import { Link, useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
   Text,
   TextInput,
-  Button,
-  StyleSheet,
-  Alert,
   TouchableOpacity,
-  ActivityIndicator,
-  Switch,
-} from "react-native";
-import { useRouter } from "expo-router";
-import { supabase } from "../../utils/supabase";
-import { useAuthStore } from "../../stores/auth";
-
-const isValidEmail = (email) => /\S+@\S+\.\S+/.test(email);
+  View
+} from 'react-native';
+import { useAuthStore } from '../../stores/auth';
 
 export default function Login() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const { signIn } = useAuthStore();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
-  const { setSession, setRememberMe, rememberMe } = useAuthStore();
 
-  async function signInWithEmail() {
-    if (!isValidEmail(email))
-      return Alert.alert("Invalid Email", "Please enter a valid email address.");
-    if (password.length < 6)
-      return Alert.alert("Invalid Password", "Password must be at least 6 characters.");
+  const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
+
+  const handleLogin = async () => {
+    setValidationError('');
+
+    // Validation
+    if (!email.trim()) {
+      setValidationError('Please enter your email.');
+      return;
+    }
+    if (!validateEmail(email)) {
+      setValidationError('Please enter a valid email address.');
+      return;
+    }
+    if (!password) {
+      setValidationError('Please enter your password.');
+      return;
+    }
+    if (password.length < 6) {
+      setValidationError('Password must be at least 6 characters.');
+      return;
+    }
 
     setLoading(true);
     try {
-      const {
-        data: { session },
-        error,
-      } = await supabase.auth.signInWithPassword({ email, password });
+      const result = await signIn({ email, password });
 
-      if (error) {
-        if (error.message.includes("Invalid login credentials")) {
-          Alert.alert("Error", "Incorrect email or password.");
-        } else if (error.message.includes("email_not_confirmed")) {
-          Alert.alert("Email Not Verified", "Please verify your email before logging in.");
-        } else if (error.message.includes("network")) {
-          Alert.alert("Network Error", "Check your internet connection and try again.");
-        } else {
-          Alert.alert("Login Failed", error.message);
-        }
+      if (result.success) {
+        // ✅ Navigate to main app (tabs)
+        router.replace('/tabs');
       } else {
-        setSession(session);
-        await setRememberMe(rememberMe);
-        router.replace("/tabs");
+        setValidationError(result.error || 'Login failed');
       }
     } catch (err) {
-      Alert.alert("Unexpected Error", err.message);
+      console.error('Login error:', err);
+      setValidationError('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
     }
-  }
+  };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome Back</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={styles.container}
+    >
+      <View style={styles.inner}>
+        <Text style={styles.logo}>Framez</Text>
+        <Text style={styles.subtitle}>Sign in to continue</Text>
 
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={email}
-        onChangeText={setEmail}
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        {validationError ? (
+          <View style={styles.errorContainer}>
+            <Text style={styles.errorText}>{validationError}</Text>
+          </View>
+        ) : null}
 
-      <View style={styles.rememberContainer}>
-        <Text>Remember me</Text>
-        <Switch value={rememberMe} onValueChange={setRememberMe} />
+        <TextInput
+          style={styles.input}
+          placeholder="Email"
+          placeholderTextColor="#999"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          value={email}
+          onChangeText={(text) => {
+            setEmail(text);
+            setValidationError('');
+          }}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Password"
+          placeholderTextColor="#999"
+          secureTextEntry
+          autoCapitalize="none"
+          autoComplete="password"
+          value={password}
+          onChangeText={(text) => {
+            setPassword(text);
+            setValidationError('');
+          }}
+        />
+
+        <TouchableOpacity
+          style={[styles.button, loading && styles.buttonDisabled]}
+          onPress={handleLogin}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.buttonText}>Sign In</Text>
+          )}
+        </TouchableOpacity>
+
+        <View style={styles.linkContainer}>
+          <Text style={styles.linkText}>Don't have an account? </Text>
+          <Link href="/signup" asChild>
+            <TouchableOpacity>
+              <Text style={styles.link}>Sign Up</Text>
+            </TouchableOpacity>
+          </Link>
+        </View>
       </View>
-
-      {loading ? (
-        <ActivityIndicator />
-      ) : (
-        <Button title="Sign In" onPress={signInWithEmail} color="#3897f0" />
-      )}
-
-      <TouchableOpacity onPress={() => router.push("/signup")}>
-        <Text style={styles.link}>Don't have an account? Sign Up</Text>
-      </TouchableOpacity>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: '#000',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    textAlign: "center",
+  inner: {
+    flex: 1,
+    justifyContent: 'center',
+    padding: 24,
+  },
+  logo: {
+    fontSize: 48,
+    color: '#fff',
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: '#999',
+    textAlign: 'center',
     marginBottom: 40,
   },
   input: {
+    width: '100%',
+    backgroundColor: '#1a1a1a',
+    color: '#fff',
+    padding: 16,
+    borderRadius: 8,
+    marginBottom: 12,
     borderWidth: 1,
-    borderColor: "#dbdbdb",
-    borderRadius: 5,
-    padding: 10,
-    marginBottom: 15,
-    backgroundColor: "#fafafa",
+    borderColor: '#333',
   },
-  rememberContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 15,
+  button: {
+    width: '100%',
+    backgroundColor: '#0095f6',
+    padding: 16,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginTop: 12,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  linkContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 24,
+  },
+  linkText: {
+    color: '#999',
   },
   link: {
-    textAlign: "center",
-    color: "#3897f0",
-    marginTop: 20,
+    color: '#0095f6',
+    fontWeight: '600',
+  },
+  errorContainer: {
+    backgroundColor: '#ff444420',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: '#ff4444',
+  },
+  errorText: {
+    color: '#ff4444',
+    textAlign: 'center',
   },
 });

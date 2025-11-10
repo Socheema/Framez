@@ -1,39 +1,35 @@
-import { useEffect } from 'react';
-import { View } from 'react-native';
-import { Redirect, useRouter } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { useAuthStore } from '../stores/auth';
-import { supabase } from '../utils/supabase';
+import { Redirect, useRouter } from 'expo-router'
+import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react'
+import { View } from 'react-native'
+import { useAuthStore } from '../stores/auth'
+import { supabase } from '../utils/supabase'
 
 export default function Index() {
-  const { session, isLoaded, loadAuth, setSession } = useAuthStore(); // ← Add () to call hook
-  const router = useRouter();
+  const { session, isLoaded, loadAuth, setSession } = useAuthStore()
+  const router = useRouter()
 
   useEffect(() => {
-    SplashScreen.preventAutoHideAsync();
-    loadAuth();
+    SplashScreen.preventAutoHideAsync()
+    loadAuth()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      setSession(newSession); // ← Use setSession from hook
+      setSession(newSession)
       if (newSession) {
-        router.replace('/(tabs)');
+        router.replace('/tabs')
       } else {
-        router.replace('/welcome');
+        router.replace('/welcome')
       }
-    });
+    })
 
-    return () => subscription.unsubscribe();
-  }, [setSession]); // ← Add setSession to deps
+    return () => subscription.unsubscribe()
+  }, [setSession])
 
   useEffect(() => {
-    if (isLoaded) {
-      SplashScreen.hideAsync();
-    }
-  }, [isLoaded]);
+    if (isLoaded) SplashScreen.hideAsync()
+  }, [isLoaded])
 
-  if (!isLoaded) {
-    return <View />;
-  }
+  if (!isLoaded) return <View />
 
-  return <Redirect href={session ? '/(tabs)' : '/welcome'} />;
+  return <Redirect href={session ? '/tabs' : '/welcome'} />
 }

@@ -1,59 +1,215 @@
-import { create } from "zustand";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { supabase } from "../utils/supabase";
-import { router } from "expo-router";
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { create } from 'zustand';
+import { supabase } from '../utils/supabase';
 
 export const useAuthStore = create((set, get) => ({
   session: null,
   user: null,
+  profile: null,
   isLoaded: false,
-  rememberMe: false,
+  error: null,
 
-  // Set current session
-  setSession: (session) => set({ session, user: session?.user || null }),
-
-  // Load saved session from Supabase (and rememberMe flag)
+  // ✅ Load saved session when app starts
   loadAuth: async () => {
     try {
-      const { data } = await supabase.auth.getSession();
-      const remember = await AsyncStorage.getItem("rememberMe");
+      // Try to get session from Supabase (this checks AsyncStorage too)
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error) {
+        console.error('Session load error:', error);
+        set({ session: null, user: null, profile: null, isLoaded: true });
+        return;
+      }
+
+      if (data?.session) {
+        // Fetch user profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.session.user.id)
+          .single();
+
+        set({
+          session: data.session,
+          user: data.session.user,
+          profile: profileData,
+          isLoaded: true
+        });
+      } else {
+        set({ session: null, user: null, profile: null, isLoaded: true });
+      }
+    } catch (error) {
+      console.error('Error loading auth:', error);
+      set({ session: null, user: null, profile: null, isLoaded: true });
+    }
+  },
+
+  // ✅ Sign up a new user
+  signUp: async ({ name, email, password }) => {
+    try {
+      set({ error: null });
+
+      const { data, error } = await supabase.auth.signUp({
+        email: email.trim().toLowerCase(),
+        password,
+        options: {
+          data: {
+            full_name: name.trim(),
+          },
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('User already registered')) {
+          set({ error: 'This email is already registered.' });
+          return {
+            success: false,
+            error: 'This email is already registered. Please sign in instead.'
+          };
+        }
+        set({ error: error.message });
+        return { success: false, error: error.message };
+      }
+
+      // Check if email confirmation is required
+      if (data.user && !data.session) {
+        return {
+          success: true,
+          requiresVerification: true,
+          message: 'Please check your email to verify your account before signing in.'
+        };
+      }
+
+      // If auto-confirmed, set session
+      if (data.session) {
+        set({
+          session: data.session,
+          user: data.user,
+        });
+
+        // Fetch the newly created profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('*')
+          .eq('id', data.user.id)
+          .single();
+
+        set({ profile: profileData });
+
+        return {
+          success: true,
+          requiresVerification: false,
+          message: 'Account created successfully!'
+        };
+      }
+
+      return { success: true, requiresVerification: true };
+    } catch (error) {
+      console.error('Sign-up error:', error);
+      set({ error: error.message });
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ✅ Sign in existing user
+  signIn: async ({ email, password }) => {
+    try {
+      set({ error: null });
+
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim().toLowerCase(),
+        password,
+      });
+
+      if (error) {
+        let errorMessage = 'Login failed. Please try again.';
+
+        if (error.message.includes('Invalid login credentials')) {
+          errorMessage = 'Invalid email or password.';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Please verify your email before signing in.';
+        } else {
+          errorMessage = error.message;
+        }
+
+        set({ error: errorMessage });
+        return { success: false, error: errorMessage };
+      }
+
+      if (!data?.session || !data?.user) {
+        set({ error: 'Login failed. No session created.' });
+        return { success: false, error: 'Login failed. Please try again.' };
+      }
+
+      // Fetch user profile
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
 
       set({
         session: data.session,
-        user: data.session?.user || null,
-        isLoaded: true,
-        rememberMe: remember === "true",
+        user: data.user,
+        profile: profileData,
+        error: null
       });
 
-      // Redirect based on session state
-      if (data.session) {
-        router.replace("/(tabs)");
-      } else {
-        // When there's no session, send user to the welcome screen (not the login screen)
-        router.replace("/welcome");
-      }
+      return {
+        success: true,
+        message: 'Welcome back!'
+      };
     } catch (error) {
-      console.error("Auth load error:", error);
-      set({ isLoaded: true });
+      console.error('Sign-in error:', error);
+      set({ error: 'Network error. Please check your connection.' });
+      return {
+        success: false,
+        error: 'Network error. Please check your connection.'
+      };
     }
   },
 
-  // Save user preference for remembering session
-  setRememberMe: async (value) => {
-    set({ rememberMe: value });
-    await AsyncStorage.setItem("rememberMe", value ? "true" : "false");
-  },
-
-  // Logout and clear session
+  // ✅ Log out user
   logout: async () => {
     try {
       await supabase.auth.signOut();
-      await AsyncStorage.removeItem("rememberMe");
-  set({ session: null, user: null });
-  // After logout route to the welcome screen rather than the login screen
-  router.replace("/welcome");
+      await AsyncStorage.removeItem('session');
+      set({
+        session: null,
+        user: null,
+        profile: null,
+        error: null
+      });
+      return { success: true };
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error('Logout error:', error);
+      return { success: false, error: error.message };
     }
   },
+
+  // ✅ Update user profile
+  updateProfile: async (updates) => {
+    try {
+      const userId = get().user?.id;
+      if (!userId) return { success: false, error: 'Not authenticated' };
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', userId)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      set({ profile: data });
+      return { success: true, data };
+    } catch (error) {
+      console.error('Update profile error:', error);
+      return { success: false, error: error.message };
+    }
+  },
+
+  // ✅ Clear errors
+  clearError: () => set({ error: null }),
 }));
