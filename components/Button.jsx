@@ -1,24 +1,43 @@
-import { StyleSheet, Text, TouchableOpacity } from 'react-native'
-import { theme } from '../constants/theme'
-import { hp } from '../helpers/common'
+import {View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import { theme } from "../constants/theme";
+import { hp } from "../helpers/common";
+import Loading from "./Loading";
 
-const shadowStyle = {
-  shadowColor: '#000',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.1,
-  shadowRadius: 4,
-  elevation: 3,
-}
+const Button = ({
+  buttonStyle,
+  textStyle,
+  title = "",
+  onPress = () => {},
+  loading = false,
+  hasShadow = true,
+}) => {
+  const shadowStyle = {
+    shadowColor: theme.colors.dark,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  };
 
-const Button = ({ buttonStyle, textStyle, title = '', onPress = () => {}, loadinga = false, hasShadow = false }) => {
+  if (loading) {
+    return (
+      <View style={[styles.button, buttonStyle, { backgroundColor: "white" }]}>
+        <Loading />
+      </View>
+    );
+  }
+
   return (
-    <TouchableOpacity onPress={onPress} style={[styles.button, buttonStyle, hasShadow && shadowStyle]}>
-      <Text style={[styles.text, textStyle]}>{title || 'Button'}</Text>
+    <TouchableOpacity
+      onPress={onPress}
+      style={[styles.button, buttonStyle, hasShadow && shadowStyle]}
+    >
+      <Text style={[styles.text, textStyle]}>{title || "Button"}</Text>
     </TouchableOpacity>
-  )
-}
+  );
+};
 
-export default Button
+export default Button;
 
 const styles = StyleSheet.create({
   button: {
@@ -27,11 +46,11 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     borderCurve: "continuous",
-    borderRadius: theme.radius.xl
+    borderRadius: theme.radius.xl,
   },
-  text:{
-    color: 'white',
-    height: hp(2.5),
+  text: {
+    color: "white",
+    fontSize: hp(2.5),
     fontWeight: theme.fonts.bold,
-  }
-})
+  },
+});
