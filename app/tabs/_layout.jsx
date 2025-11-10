@@ -1,68 +1,51 @@
-import { Tabs, useRouter, usePathname } from 'expo-router';
-import { TouchableOpacity, Platform } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+// File: app/tabs/_layout.jsx
+import { Tabs } from "expo-router";
+import { View, StyleSheet, Platform } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
-export default function TabsLayout() {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  // Handle feed tab press with refresh
-  const handleFeedPress = () => {
-    if (pathname === '/tabs/feed') {
-      // If already on feed, trigger a refresh by navigating again
-      router.replace('/tabs/feed');
-    } else {
-      router.push('/tabs/feed');
-    }
-  };
-
+export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: '#000',
-        tabBarInactiveTintColor: '#999',
-        tabBarShowLabel: false,
-        tabBarStyle: {
-          backgroundColor: '#fff',
-          borderTopWidth: 1,
-          borderTopColor: '#efefef',
-          height: Platform.OS === 'ios' ? 85 : 60,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 10,
-          paddingTop: 10,
-        },
         headerShown: false,
+        tabBarActiveTintColor: "#000",
+        tabBarInactiveTintColor: "#999",
+        tabBarShowLabel: false,
+        tabBarStyle: styles.tabBar,
+        tabBarItemStyle: styles.tabBarItem,
       }}
     >
       {/* Feed Tab */}
       <Tabs.Screen
         name="feed"
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
+          title: "Feed",
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'home' : 'home-outline'}
-              size={size}
+              name={focused ? "home" : "home-outline"}
+              size={28}
               color={color}
-            />
-          ),
-          tabBarButton: (props) => (
-            <TouchableOpacity
-              {...props}
-              onPress={handleFeedPress}
             />
           ),
         }}
       />
 
-      {/* Create Tab */}
+      {/* Create Tab - Floating Button */}
       <Tabs.Screen
         name="create"
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
-            <Ionicons
-              name={focused ? 'add-circle' : 'add-circle-outline'}
-              size={size + 4}
-              color={color}
-            />
+          title: "Create",
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.floatingButtonWrapper}>
+              <View
+                style={[
+                  styles.floatingButton,
+                  focused && styles.floatingButtonActive,
+                ]}
+              >
+                <Ionicons name="add" size={32} color="#fff" />
+              </View>
+            </View>
           ),
         }}
       />
@@ -71,10 +54,11 @@ export default function TabsLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          tabBarIcon: ({ color, size, focused }) => (
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? 'person-circle' : 'person-circle-outline'}
-              size={size}
+              name={focused ? "person" : "person-outline"}
+              size={28}
               color={color}
             />
           ),
@@ -83,3 +67,57 @@ export default function TabsLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: "#fff",
+    borderTopWidth: 1,
+    borderTopColor: "#e0e0e0",
+    height: Platform.OS === "ios" ? 88 : 65,
+    paddingBottom: Platform.OS === "ios" ? 28 : 8,
+    paddingTop: 8,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: -2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  tabBarItem: {
+    paddingTop: 8,
+  },
+  // Floating button wrapper
+  floatingButtonWrapper: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? -28 : -32,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: {
+      width: 0,
+      height: 4,
+    },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+  },
+  // Floating button inner
+  floatingButton: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#0095f6",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  floatingButtonActive: {
+    backgroundColor: "#0081d5",
+    transform: [{ scale: 0.95 }],
+  },
+});

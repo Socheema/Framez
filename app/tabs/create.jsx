@@ -14,7 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { create } from 'zustand';
-import { supabase } from '../../../utils/supabase';
+import { supabase } from '../../utils/supabase';
 
 // Zustand Store for Posts
 export const usePostsStore = create((set) => ({
