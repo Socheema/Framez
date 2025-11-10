@@ -29,7 +29,8 @@ export const useAuthStore = create((set, get) => ({
       if (data.session) {
         router.replace("/(tabs)");
       } else {
-        router.replace("/login");
+        // When there's no session, send user to the welcome screen (not the login screen)
+        router.replace("/welcome");
       }
     } catch (error) {
       console.error("Auth load error:", error);
@@ -48,8 +49,9 @@ export const useAuthStore = create((set, get) => ({
     try {
       await supabase.auth.signOut();
       await AsyncStorage.removeItem("rememberMe");
-      set({ session: null, user: null });
-      router.replace("/login");
+  set({ session: null, user: null });
+  // After logout route to the welcome screen rather than the login screen
+  router.replace("/welcome");
     } catch (error) {
       console.error("Logout failed:", error);
     }
