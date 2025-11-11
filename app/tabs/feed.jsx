@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { wp, hp } from '../../helpers/common';
-import { theme } from '../../constants/theme';
 import Button from '../../components/Button';
-import { Ionicons } from '@expo/vector-icons';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 
 import { useCallback, useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
+  Alert,
   Dimensions,
   FlatList,
   Platform,
@@ -16,19 +18,17 @@ import {
   Text,
   TouchableOpacity,
   View,
-  Alert,
-  ActivityIndicator,
 } from 'react-native';
+import CommentsModal from '../../components/CommentsModal';
+import { useAuthStore } from '../../stores/auth';
 import { usePostsStore } from '../../stores/postStore';
 import {
   fetchAllPosts,
+  getPostLikesCount,
+  hasUserLikedPost,
   likePost,
   unlikePost,
-  hasUserLikedPost,
-  getPostLikesCount,
 } from '../../utils/postsServices';
-import { useAuthStore } from '../../stores/auth';
-import CommentsModal from '../../components/CommentsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -218,15 +218,11 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh }) => {
             onPress={handleLikePress}
             disabled={isLiking}
           >
-            {isLiking ? (
-              <ActivityIndicator size="small" color="#262626" />
-            ) : (
-              <Ionicons
-                name={isLiked ? 'heart' : 'heart-outline'}
-                size={26}
-                color={isLiked ? '#ed4956' : '#262626'}
-              />
-            )}
+            <Ionicons
+              name={isLiked ? 'heart' : 'heart-outline'}
+              size={26}
+              color={isLiked ? '#ed4956' : '#262626'}
+            />
           </TouchableOpacity>
 
           {/* Comment Button */}

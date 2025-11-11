@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from 'react-native';
 import { fetchPostComments, addComment } from '../utils/postsServices';
 import { useAuthStore } from '../stores/auth';
@@ -24,7 +25,15 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
 
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+      {avatarUrl ? (
+        <Image
+          source={{ uri: avatarUrl }}
+          style={{ width: size, height: size, borderRadius: size / 2 }}
+          resizeMode="cover"
+        />
+      ) : (
+        <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+      )}
     </View>
   );
 };
@@ -56,7 +65,7 @@ const CommentItem = ({ comment }) => {
 };
 
 export default function CommentsModal({ visible, onClose, postId, initialCount = 0 }) {
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(false);
@@ -139,7 +148,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
 
         {/* Comment Input */}
         <View style={styles.inputContainer}>
-          <Avatar userName={user?.email} size={32} />
+          <Avatar userName={profile?.user_name || user?.email} avatarUrl={profile?.avatar_url} size={32} />
           <TextInput
             style={styles.input}
             placeholder="Add a comment..."

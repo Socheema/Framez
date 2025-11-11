@@ -131,7 +131,7 @@ CREATE TABLE saved_posts (
 ```javascript
 const handleMorePress = () => {
   const isOwner = post.user_id === currentUserId;
-  
+
   const options = isOwner
     ? [
         { text: 'Edit Post', onPress: handleEdit },
@@ -144,7 +144,7 @@ const handleMorePress = () => {
         { text: 'Block User', onPress: handleBlock },
         { text: 'Cancel', style: 'cancel' }
       ];
-  
+
   Alert.alert('Post Options', 'Choose an action', options);
 };
 ```
@@ -177,10 +177,10 @@ try {
   // Optimistic update
   setIsLiked(!isLiked);
   setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
-  
+
   // Server update
   await likePost(userId, postId);
-  
+
   // Sync from server
   const newCount = await getPostLikesCount(postId);
   setLikesCount(newCount);
