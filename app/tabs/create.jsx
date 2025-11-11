@@ -1,23 +1,23 @@
-import React, { useState } from 'react';
+import { decode } from 'base64-arraybuffer';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import {
-  View,
+  ActivityIndicator,
+  Alert,
+  Image,
+  Platform,
+  ScrollView,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  Image,
-  StyleSheet,
-  ScrollView,
-  ActivityIndicator,
-  Alert,
-  Platform,
+  View,
 } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import * as FileSystem from 'expo-file-system';
-import { useRouter } from 'expo-router';
-import { usePostsStore } from '../../stores/postStore';
 import { useAuthStore } from '../../stores/auth';
+import { usePostsStore } from '../../stores/postStore';
 import { supabase } from '../../utils/supabase';
-import { decode } from 'base64-arraybuffer';
 
 export default function CreatePost() {
   const [caption, setCaption] = useState('');
