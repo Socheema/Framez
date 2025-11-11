@@ -196,15 +196,8 @@ export default function CreatePost() {
       setCaption('');
       setSelectedImage(null);
 
-      // Show success and navigate
-      Alert.alert('Success', 'Post created successfully!', [
-        {
-          text: 'OK',
-          onPress: () => {
-            router.replace('/tabs/feed');
-          },
-        },
-      ]);
+      // Navigate immediately to feed
+      router.replace('/tabs/feed');
 
     } catch (error) {
       console.error('Error creating post:', error);
