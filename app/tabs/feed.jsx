@@ -333,104 +333,128 @@ export default function Feed() {
         },
         onUpdate: (updatedPost) => {
           console.log('✏️ Post updated:', updatedPost.id);
-          setPosts(prevPosts =>
-            prevPosts.map(post =>
-              post.id === updatedPost.id
-                ? { ...post, ...updatedPost }
-                : post
-            )
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            return post.id === updatedPost.id
+              ? { ...post, ...updatedPost }
+              : post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
         onDelete: (deletedPost) => {
           console.log('🗑️ Post deleted:', deletedPost.id);
-          setPosts(prevPosts =>
-            prevPosts.filter(post => post.id !== deletedPost.id)
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.filter(post => 
+            post && post.id && post.id !== deletedPost.id
           );
+          
+          setPosts(updatedPosts);
         },
       },
       {
         table: 'likes',
         onInsert: async (newLike) => {
           console.log('❤️ New like on post:', newLike.post_id);
-          // Update the likes count for the specific post
-          setPosts(prevPosts =>
-            prevPosts.map(post => {
-              if (post.id === newLike.post_id) {
-                return {
-                  ...post,
-                  likes_count: (post.likes_count || 0) + 1
-                };
-              }
-              return post;
-            })
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            if (post.id === newLike.post_id) {
+              return {
+                ...post,
+                likes_count: (post.likes_count || 0) + 1
+              };
+            }
+            return post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
         onDelete: (deletedLike) => {
           console.log('💔 Like removed from post:', deletedLike.post_id);
-          // Update the likes count for the specific post
-          setPosts(prevPosts =>
-            prevPosts.map(post => {
-              if (post.id === deletedLike.post_id) {
-                return {
-                  ...post,
-                  likes_count: Math.max((post.likes_count || 1) - 1, 0)
-                };
-              }
-              return post;
-            })
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            if (post.id === deletedLike.post_id) {
+              return {
+                ...post,
+                likes_count: Math.max((post.likes_count || 1) - 1, 0)
+              };
+            }
+            return post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
       },
       {
         table: 'comments',
         onInsert: (newComment) => {
           console.log('💬 New comment on post:', newComment.post_id);
-          // Update the comments count for the specific post
-          setPosts(prevPosts =>
-            prevPosts.map(post => {
-              if (post.id === newComment.post_id) {
-                return {
-                  ...post,
-                  comments_count: (post.comments_count || 0) + 1
-                };
-              }
-              return post;
-            })
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            if (post.id === newComment.post_id) {
+              return {
+                ...post,
+                comments_count: (post.comments_count || 0) + 1
+              };
+            }
+            return post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
         onDelete: (deletedComment) => {
           console.log('🗑️ Comment deleted from post:', deletedComment.post_id);
-          // Update the comments count for the specific post
-          setPosts(prevPosts =>
-            prevPosts.map(post => {
-              if (post.id === deletedComment.post_id) {
-                return {
-                  ...post,
-                  comments_count: Math.max((post.comments_count || 1) - 1, 0)
-                };
-              }
-              return post;
-            })
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            if (post.id === deletedComment.post_id) {
+              return {
+                ...post,
+                comments_count: Math.max((post.comments_count || 1) - 1, 0)
+              };
+            }
+            return post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
       },
       {
         table: 'profiles',
         onUpdate: (updatedProfile) => {
           console.log('👤 Profile updated:', updatedProfile.id);
-          // Update all posts by this user with new profile info
-          setPosts(prevPosts =>
-            prevPosts.map(post => {
-              if (post.user_id === updatedProfile.id) {
-                return {
-                  ...post,
-                  user_name: updatedProfile.full_name || updatedProfile.username,
-                  avatar_url: updatedProfile.avatar_url
-                };
-              }
-              return post;
-            })
-          );
+          const currentPosts = usePostsStore.getState().posts;
+          if (!Array.isArray(currentPosts)) return;
+          
+          const updatedPosts = currentPosts.map(post => {
+            if (!post || !post.id) return post;
+            if (post.user_id === updatedProfile.id) {
+              return {
+                ...post,
+                user_name: updatedProfile.full_name || updatedProfile.username,
+                avatar_url: updatedProfile.avatar_url
+              };
+            }
+            return post;
+          }).filter(post => post && post.id);
+          
+          setPosts(updatedPosts);
         },
       },
     ]);
@@ -460,18 +484,30 @@ export default function Feed() {
     fetchPosts(true);
   };
 
-  // Render post item
-  const renderPost = ({ item }) => (
-    <PostCard
-      post={item}
-      currentUserId={user?.id}
-      onCommentPress={handleCommentPress}
-      onRefresh={() => fetchPosts(true)}
-    />
-  );
+  // Render post item with safety check
+  const renderPost = ({ item }) => {
+    if (!item || !item.id) {
+      console.warn('Skipping invalid post:', item);
+      return null;
+    }
+    return (
+      <PostCard
+        post={item}
+        currentUserId={user?.id}
+        onCommentPress={handleCommentPress}
+        onRefresh={() => fetchPosts(true)}
+      />
+    );
+  };
 
-  // Key extractor
-  const keyExtractor = (item) => item.id?.toString() || Math.random().toString();
+  // Key extractor with safety check
+  const keyExtractor = (item) => {
+    if (!item || !item.id) {
+      console.warn('Invalid item in posts array:', item);
+      return `invalid-${Math.random()}`;
+    }
+    return item.id.toString();
+  };
 
   // Error state
   if (error && !refreshing && posts.length === 0) {
@@ -507,12 +543,12 @@ export default function Feed() {
         <SkeletonLoader />
       ) : (
         <FlatList
-          data={posts}
+          data={Array.isArray(posts) ? posts.filter(post => post && post.id) : []}
           renderItem={renderPost}
           keyExtractor={keyExtractor}
           contentContainerStyle={[
             styles.listContent,
-            posts.length === 0 && styles.listContentEmpty,
+            (Array.isArray(posts) ? posts.length : 0) === 0 && styles.listContentEmpty,
           ]}
           refreshControl={
             <RefreshControl
