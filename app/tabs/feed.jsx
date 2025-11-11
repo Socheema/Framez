@@ -1,6 +1,11 @@
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { wp, hp } from '../../helpers/common';
+import { theme } from '../../constants/theme';
+import Button from '../../components/Button';
+import { Ionicons } from '@expo/vector-icons';
+
 import { useCallback, useEffect, useState } from 'react';
 import {
   Dimensions,
@@ -11,9 +16,19 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
+  ActivityIndicator,
 } from 'react-native';
 import { usePostsStore } from '../../stores/postStore';
-import { fetchAllPosts } from '../../utils/postsServices';
+import {
+  fetchAllPosts,
+  likePost,
+  unlikePost,
+  hasUserLikedPost,
+  getPostLikesCount,
+} from '../../utils/postsServices';
+import { useAuthStore } from '../../stores/auth';
+import CommentsModal from '../../components/CommentsModal';
 
 const { width } = Dimensions.get('window');
 
@@ -76,7 +91,91 @@ const EmptyState = ({ onRefresh }) => (
 );
 
 // Post card component
-const PostCard = ({ post }) => {
+const PostCard = ({ post, currentUserId, onCommentPress, onRefresh }) => {
+  const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(post.likes_count || 0);
+  const [isLiking, setIsLiking] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+
+  useEffect(() => {
+    checkLikeStatus();
+  }, [post.id, currentUserId]);
+
+  const checkLikeStatus = async () => {
+    if (currentUserId && post.id) {
+      const liked = await hasUserLikedPost(currentUserId, post.id);
+      setIsLiked(liked);
+    }
+  };
+
+  const handleLikePress = async () => {
+    if (!currentUserId) {
+      Alert.alert('Login Required', 'Please login to like posts');
+      return;
+    }
+
+    if (isLiking) return;
+
+    setIsLiking(true);
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+
+    // Optimistic update
+    setIsLiked(!isLiked);
+    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+
+    try {
+      if (isLiked) {
+        await unlikePost(currentUserId, post.id);
+      } else {
+        await likePost(currentUserId, post.id);
+      }
+
+      // Refresh count from server
+      const newCount = await getPostLikesCount(post.id);
+      setLikesCount(newCount);
+    } catch (error) {
+      console.error('Error toggling like:', error);
+      // Revert on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      Alert.alert('Error', 'Failed to update like. Please try again.');
+    } finally {
+      setIsLiking(false);
+    }
+  };
+
+  const handleCommentPress = () => {
+    if (!currentUserId) {
+      Alert.alert('Login Required', 'Please login to comment');
+      return;
+    }
+    onCommentPress(post);
+  };
+
+  const handleSharePress = () => {
+    Alert.alert('Share', 'Share functionality coming soon!');
+  };
+
+  const handleSavePress = () => {
+    setIsSaved(!isSaved);
+    Alert.alert(
+      isSaved ? 'Removed from saved' : 'Saved',
+      isSaved ? 'Post removed from your saved collection' : 'Post saved to your collection'
+    );
+  };
+
+  const handleMorePress = () => {
+    Alert.alert(
+      'Post Options',
+      'Choose an action',
+      [
+        { text: 'Report Post', onPress: () => Alert.alert('Report', 'Post reported') },
+        { text: 'Cancel', style: 'cancel' },
+      ]
+    );
+  };
+
   const formatTime = (timestamp) => {
     try {
       return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
@@ -94,8 +193,8 @@ const PostCard = ({ post }) => {
           <Text style={styles.username}>{post.user_name || 'Anonymous'}</Text>
           <Text style={styles.timestamp}>{formatTime(post.created_at)}</Text>
         </View>
-        <TouchableOpacity style={styles.moreButton}>
-          <Text style={styles.moreIcon}>⋯</Text>
+        <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
+          <Ionicons name="ellipsis-horizontal" size={20} color="#262626" />
         </TouchableOpacity>
       </View>
 
@@ -113,26 +212,49 @@ const PostCard = ({ post }) => {
       {/* Actions */}
       <View style={styles.actionsContainer}>
         <View style={styles.leftActions}>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>♡</Text>
+          {/* Like Button */}
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleLikePress}
+            disabled={isLiking}
+          >
+            {isLiking ? (
+              <ActivityIndicator size="small" color="#262626" />
+            ) : (
+              <Ionicons
+                name={isLiked ? 'heart' : 'heart-outline'}
+                size={26}
+                color={isLiked ? '#ed4956' : '#262626'}
+              />
+            )}
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>💬</Text>
+
+          {/* Comment Button */}
+          <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
+            <Ionicons name="chatbubble-outline" size={24} color="#262626" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionButton}>
-            <Text style={styles.actionIcon}>✈</Text>
+
+          {/* Share Button */}
+          <TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
+            <Ionicons name="paper-plane-outline" size={24} color="#262626" />
           </TouchableOpacity>
         </View>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionIcon}>🔖</Text>
+
+        {/* Save/Bookmark Button */}
+        <TouchableOpacity style={styles.actionButton} onPress={handleSavePress}>
+          <Ionicons
+            name={isSaved ? 'bookmark' : 'bookmark-outline'}
+            size={24}
+            color={isSaved ? '#262626' : '#262626'}
+          />
         </TouchableOpacity>
       </View>
 
       {/* Likes count */}
-      {post.likes_count > 0 && (
+      {likesCount > 0 && (
         <View style={styles.likesContainer}>
           <Text style={styles.likesText}>
-            {post.likes_count} {post.likes_count === 1 ? 'like' : 'likes'}
+            {likesCount} {likesCount === 1 ? 'like' : 'likes'}
           </Text>
         </View>
       )}
@@ -149,9 +271,9 @@ const PostCard = ({ post }) => {
 
       {/* Comments count */}
       {post.comments_count > 0 && (
-        <TouchableOpacity style={styles.commentsButton}>
+        <TouchableOpacity style={styles.commentsButton} onPress={handleCommentPress}>
           <Text style={styles.commentsText}>
-            View all {post.comments_count} comments
+            View all {post.comments_count} {post.comments_count === 1 ? 'comment' : 'comments'}
           </Text>
         </TouchableOpacity>
       )}
@@ -162,10 +284,13 @@ const PostCard = ({ post }) => {
 // Main Feed Component
 export default function Feed() {
   const router = useRouter();
+  const { user } = useAuthStore();
   const { posts, setPosts, loading, setLoading } = usePostsStore();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [commentsModalVisible, setCommentsModalVisible] = useState(false);
 
   // Fetch posts from Supabase
   const fetchPosts = async (showRefreshing = false) => {
@@ -200,8 +325,28 @@ export default function Feed() {
     fetchPosts(true);
   }, []);
 
+  // Handle comment press
+  const handleCommentPress = (post) => {
+    setSelectedPost(post);
+    setCommentsModalVisible(true);
+  };
+
+  const handleCloseComments = () => {
+    setCommentsModalVisible(false);
+    setSelectedPost(null);
+    // Refresh posts to get updated comment count
+    fetchPosts(true);
+  };
+
   // Render post item
-  const renderPost = ({ item }) => <PostCard post={item} />;
+  const renderPost = ({ item }) => (
+    <PostCard
+      post={item}
+      currentUserId={user?.id}
+      onCommentPress={handleCommentPress}
+      onRefresh={() => fetchPosts(true)}
+    />
+  );
 
   // Key extractor
   const keyExtractor = (item) => item.id?.toString() || Math.random().toString();
@@ -217,9 +362,12 @@ export default function Feed() {
           <Text style={styles.errorIcon}>⚠️</Text>
           <Text style={styles.errorTitle}>Something went wrong</Text>
           <Text style={styles.errorText}>{error}</Text>
-          <TouchableOpacity style={styles.retryButton} onPress={() => fetchPosts()}>
-            <Text style={styles.retryButtonText}>Try Again</Text>
-          </TouchableOpacity>
+
+            <Button
+          title="Retry Again"
+          buttonStyle={{ marginHorizontal: wp(20), paddingHorizontal:wp(5) }}
+           onPress={() => fetchPosts()}
+        />
         </View>
       </View>
     );
@@ -256,6 +404,14 @@ export default function Feed() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* Comments Modal */}
+      <CommentsModal
+        visible={commentsModalVisible}
+        onClose={handleCloseComments}
+        postId={selectedPost?.id}
+        initialCount={selectedPost?.comments_count || 0}
+      />
     </View>
   );
 }
@@ -325,10 +481,6 @@ const styles = StyleSheet.create({
   moreButton: {
     padding: 8,
   },
-  moreIcon: {
-    fontSize: 20,
-    color: '#000',
-  },
   postImage: {
     width: width,
     height: width,
@@ -339,17 +491,18 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 8,
+    paddingTop: 12,
+    paddingBottom: 4,
   },
   leftActions: {
     flexDirection: 'row',
     gap: 16,
+    alignItems: 'center',
   },
   actionButton: {
     padding: 4,
-  },
-  actionIcon: {
-    fontSize: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   likesContainer: {
     paddingHorizontal: 12,
@@ -443,12 +596,12 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 32,
     backgroundColor: '#0095f6',
-    borderRadius: 8,
+    borderRadius: 22,
   },
   retryButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#fff',
+  textAlign: "center",
+    color: theme.colors.text,
+    fontSize: hp(1.6),
   },
 
   // Skeleton Loader

@@ -136,38 +136,38 @@ If you decide to add foreign key constraints for data integrity:
 
 ```sql
 -- Add foreign key from posts to profiles
-ALTER TABLE posts 
-ADD CONSTRAINT posts_user_id_fkey 
-FOREIGN KEY (user_id) 
-REFERENCES profiles(id) 
+ALTER TABLE posts
+ADD CONSTRAINT posts_user_id_fkey
+FOREIGN KEY (user_id)
+REFERENCES profiles(id)
 ON DELETE CASCADE;
 
 -- Add foreign key from likes to posts
-ALTER TABLE likes 
-ADD CONSTRAINT likes_post_id_fkey 
-FOREIGN KEY (post_id) 
-REFERENCES posts(id) 
+ALTER TABLE likes
+ADD CONSTRAINT likes_post_id_fkey
+FOREIGN KEY (post_id)
+REFERENCES posts(id)
 ON DELETE CASCADE;
 
 -- Add foreign key from likes to profiles
-ALTER TABLE likes 
-ADD CONSTRAINT likes_user_id_fkey 
-FOREIGN KEY (user_id) 
-REFERENCES profiles(id) 
+ALTER TABLE likes
+ADD CONSTRAINT likes_user_id_fkey
+FOREIGN KEY (user_id)
+REFERENCES profiles(id)
 ON DELETE CASCADE;
 
 -- Add foreign key from comments to posts
-ALTER TABLE comments 
-ADD CONSTRAINT comments_post_id_fkey 
-FOREIGN KEY (post_id) 
-REFERENCES posts(id) 
+ALTER TABLE comments
+ADD CONSTRAINT comments_post_id_fkey
+FOREIGN KEY (post_id)
+REFERENCES posts(id)
 ON DELETE CASCADE;
 
 -- Add foreign key from comments to profiles
-ALTER TABLE comments 
-ADD CONSTRAINT comments_user_id_fkey 
-FOREIGN KEY (user_id) 
-REFERENCES profiles(id) 
+ALTER TABLE comments
+ADD CONSTRAINT comments_user_id_fkey
+FOREIGN KEY (user_id)
+REFERENCES profiles(id)
 ON DELETE CASCADE;
 ```
 

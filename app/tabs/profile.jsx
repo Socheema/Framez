@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { decode } from 'base64-arraybuffer';
 import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
@@ -16,7 +17,6 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { decode } from 'base64-arraybuffer';
 import { useAuthStore } from '../../stores/auth';
 import { supabase } from '../../utils/supabase';
 
