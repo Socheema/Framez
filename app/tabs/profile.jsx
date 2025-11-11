@@ -1,27 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
+import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Dimensions,
   FlatList,
   Image,
-  Platform,
-  Alert,
-  ActivityIndicator,
-  Dimensions,
   Modal,
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { decode } from 'base64-arraybuffer';
 import { useAuthStore } from '../../stores/auth';
 import { supabase } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 6) / 3; // 3 columns with 2px gaps
 
-// Avatar component
-const Avatar = ({ userName, size = 80 }) => {
+// Avatar component with upload capability
+const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false }) => {
   const initials = userName
     ?.split(' ')
     .map(n => n[0])
@@ -30,9 +33,33 @@ const Avatar = ({ userName, size = 80 }) => {
     .slice(0, 2) || '?';
 
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
-      <Text style={[styles.avatarText, { fontSize: size * 0.35 }]}>{initials}</Text>
-    </View>
+    <TouchableOpacity
+      onPress={onPress}
+      activeOpacity={0.8}
+      disabled={uploading}
+      style={{ position: 'relative' }}
+    >
+      <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+        {avatarUrl ? (
+          <Image
+            source={{ uri: avatarUrl }}
+            style={{ width: size, height: size, borderRadius: size / 2 }}
+            resizeMode="cover"
+          />
+        ) : (
+          <Text style={[styles.avatarText, { fontSize: size * 0.35 }]}>{initials}</Text>
+        )}
+        {uploading && (
+          <View style={styles.avatarUploadingOverlay}>
+            <ActivityIndicator size="small" color="#fff" />
+          </View>
+        )}
+      </View>
+      {/* Plus Icon */}
+      <View style={[styles.avatarPlusIcon, { width: size * 0.3, height: size * 0.3 }]}>
+        <Ionicons name="add" size={size * 0.2} color="#fff" />
+      </View>
+    </TouchableOpacity>
   );
 };
 
@@ -75,10 +102,17 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [localAvatarUrl, setLocalAvatarUrl] = useState(profile?.avatar_url);
 
   useEffect(() => {
     loadUserPosts();
   }, [user]);
+
+  useEffect(() => {
+    // Update local avatar when profile changes
+    setLocalAvatarUrl(profile?.avatar_url);
+  }, [profile]);
 
   const loadUserPosts = async () => {
     if (!user?.id) return;
@@ -116,6 +150,130 @@ export default function Profile() {
     setLogoutModalVisible(false);
   };
 
+  // Avatar upload functionality
+  const handleAvatarPress = async () => {
+    try {
+      // Request permission
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+      if (status !== 'granted') {
+        Alert.alert(
+          'Permission Needed',
+          'Please grant photo library access to update your avatar.'
+        );
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadAvatar(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const uploadAvatar = async (imageUri) => {
+    if (!user?.id) return;
+
+    try {
+      setUploadingAvatar(true);
+
+      // Get file extension
+      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
+      const filePath = fileName;
+
+      let uploadData;
+
+      if (Platform.OS === 'web') {
+        // For web: use fetch to get blob
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        uploadData = blob;
+      } else {
+        // For native: use FileSystem + base64-arraybuffer
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        uploadData = decode(base64);
+      }
+
+      // Delete old avatar if exists
+      if (profile?.avatar_url) {
+        try {
+          const oldFileName = profile.avatar_url.split('/').pop();
+          if (oldFileName) {
+            await supabase.storage
+              .from('avatars')
+              .remove([oldFileName]);
+          }
+        } catch (error) {
+          console.log('No old avatar to delete or error deleting:', error);
+        }
+      }
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('avatars')
+        .upload(filePath, uploadData, {
+          contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('avatars')
+        .getPublicUrl(filePath);
+
+      // Update profile in database
+      const { error: updateError } = await supabase
+        .from('profiles')
+        .update({ avatar_url: publicUrl })
+        .eq('id', user.id);
+
+      if (updateError) {
+        console.error('Profile update error:', updateError);
+        throw updateError;
+      }
+
+      // Update local state immediately
+      setLocalAvatarUrl(publicUrl);
+
+      // Reload profile from auth store
+      const { data: updatedProfile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (updatedProfile) {
+        useAuthStore.setState({ profile: updatedProfile });
+      }
+
+      Alert.alert('Success', 'Avatar updated successfully!');
+    } catch (error) {
+      console.error('Error uploading avatar:', error);
+      Alert.alert('Error', 'Failed to upload avatar. Please try again.');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
+
   const handlePostPress = (post) => {
     // Navigate to post detail or open modal
     Alert.alert('Post', post.caption || 'No caption');
@@ -149,7 +307,13 @@ export default function Profile() {
             <>
               {/* Profile Info */}
               <View style={styles.profileSection}>
-                <Avatar userName={userName} size={80} />
+                <Avatar
+                  userName={userName}
+                  avatarUrl={localAvatarUrl}
+                  size={80}
+                  onPress={handleAvatarPress}
+                  uploading={uploadingAvatar}
+                />
 
                 <View style={styles.statsContainer}>
                   <View style={styles.statItem}>
@@ -302,10 +466,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#0095f6',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   avatarText: {
     color: '#fff',
     fontWeight: '700',
+  },
+  avatarUploadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 999,
+  },
+  avatarPlusIcon: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: '#0095f6',
+    borderRadius: 999,
+    borderWidth: 2,
+    borderColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   statsContainer: {
     flex: 1,
