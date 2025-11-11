@@ -17,7 +17,7 @@ export default function RootLayout() {
   useEffect(() => {
     if (!isLoaded) return; // Wait for auth to load
 
-    const inAuthGroup = segments[0] === '(tabs)';
+    const inAuthGroup = segments[0] === 'tabs';
 
     if (session && !inAuthGroup) {
       // ✅ User is signed in but not in protected route, redirect to tabs

@@ -12,16 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 import { useRouter } from 'expo-router';
-import { create } from 'zustand';
+import { usePostsStore } from '../../stores/postStore';
+import { useAuthStore } from '../../stores/auth';
 import { supabase } from '../../utils/supabase';
-
-// Zustand Store for Posts
-export const usePostsStore = create((set) => ({
-  posts: [],
-  addPost: (post) => set((state) => ({ posts: [post, ...state.posts] })),
-  setPosts: (posts) => set({ posts }),
-}));
+import { decode } from 'base64-arraybuffer';
 
 export default function CreatePost() {
   const [caption, setCaption] = useState('');
@@ -29,11 +25,11 @@ export default function CreatePost() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const addPost = usePostsStore((state) => state.addPost);
+  const { user } = useAuthStore();
 
   // Request permissions and pick image
   const pickImage = async () => {
     try {
-      // Request permission
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
       if (status !== 'granted') {
@@ -44,7 +40,6 @@ export default function CreatePost() {
         return;
       }
 
-      // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
@@ -64,30 +59,56 @@ export default function CreatePost() {
   // Upload image to Supabase Storage
   const uploadImage = async (imageUri) => {
     try {
-      const fileExt = imageUri.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `posts/${fileName}`;
+      console.log('Starting upload for:', imageUri);
 
-      // Convert image to blob for upload
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
+      // Get file extension
+      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      let uploadData;
+
+      if (Platform.OS === 'web') {
+        // For web: use fetch to get blob
+        console.log('Using web upload method (blob)');
+        const response = await fetch(imageUri);
+        const blob = await response.blob();
+        uploadData = blob;
+      } else {
+        // For native: use FileSystem + base64-arraybuffer
+        console.log('Using native upload method (base64)');
+        const base64 = await FileSystem.readAsStringAsync(imageUri, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        // Convert base64 to array buffer
+        uploadData = decode(base64);
+      }
+
+      console.log('Uploading to Supabase...');
 
       // Upload to Supabase Storage
       const { data, error } = await supabase.storage
-        .from('post-images')
-        .upload(filePath, blob, {
-          contentType: `image/${fileExt}`,
+        .from('posts')
+        .upload(filePath, uploadData, {
+          contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
           cacheControl: '3600',
+          upsert: false,
         });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Upload error:', error);
+        throw error;
+      }
+
+      console.log('Upload successful:', data);
 
       // Get public URL
-      const { data: urlData } = supabase.storage
-        .from('post-images')
+      const { data: { publicUrl } } = supabase.storage
+        .from('posts')
         .getPublicUrl(filePath);
 
-      return urlData.publicUrl;
+      console.log('Public URL:', publicUrl);
+      return publicUrl;
     } catch (error) {
       console.error('Error uploading image:', error);
       throw error;
@@ -110,32 +131,40 @@ export default function CreatePost() {
 
     try {
       // Get current user
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
 
-      if (userError || !user) {
+      if (userError || !currentUser) {
         throw new Error('Please sign in to create a post.');
       }
 
-      // Get user profile for username
-      const { data: profile } = await supabase
+      console.log('Creating post for user:', currentUser.id);
+
+      // Upload image first
+      console.log('Uploading image...');
+      const imageUrl = await uploadImage(selectedImage.uri);
+      console.log('Image uploaded:', imageUrl);
+
+      // Get user profile
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
-        .select('username, full_name')
-        .eq('id', user.id)
+        .select('username, full_name, avatar_url')
+        .eq('id', currentUser.id)
         .single();
 
-      const userName = profile?.username || profile?.full_name || user.email?.split('@')[0] || 'Anonymous';
+      if (profileError) {
+        console.log('Profile fetch error:', profileError);
+      }
 
-      // Upload image
-      const imageUrl = await uploadImage(selectedImage.uri);
+      const userName = profile?.username || profile?.full_name || currentUser.email?.split('@')[0] || 'Anonymous';
 
       // Create post data
       const postData = {
-        userId: user.id,
-        userName: userName,
-        text: caption.trim(),
-        imageUrl: imageUrl,
-        timestamp: new Date().toISOString(),
+        user_id: currentUser.id,
+        caption: caption.trim(),
+        image_url: imageUrl,
       };
+
+      console.log('Inserting post:', postData);
 
       // Save to Supabase
       const { data: newPost, error: postError } = await supabase
@@ -144,25 +173,45 @@ export default function CreatePost() {
         .select()
         .single();
 
-      if (postError) throw postError;
+      if (postError) {
+        console.error('Post creation error:', postError);
+        throw postError;
+      }
+
+      console.log('Post created successfully:', newPost);
+
+      // Transform post to include user info
+      const transformedPost = {
+        ...newPost,
+        user_name: userName,
+        avatar_url: profile?.avatar_url || null,
+        likes_count: 0,
+        comments_count: 0,
+      };
 
       // Add to Zustand store
-      addPost(newPost);
+      addPost(transformedPost);
+
+      // Reset form
+      setCaption('');
+      setSelectedImage(null);
 
       // Show success and navigate
       Alert.alert('Success', 'Post created successfully!', [
         {
           text: 'OK',
           onPress: () => {
-            setCaption('');
-            setSelectedImage(null);
-            router.push('/tabs/feed');
+            router.replace('/tabs/feed');
           },
         },
       ]);
+
     } catch (error) {
       console.error('Error creating post:', error);
-      Alert.alert('Error', error.message || 'Failed to create post. Please try again.');
+      Alert.alert(
+        'Error',
+        error.message || 'Failed to create post. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
