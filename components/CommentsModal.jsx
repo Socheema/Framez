@@ -1,19 +1,19 @@
-import React, { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
-  View,
-  Text,
+  ActivityIndicator,
+  FlatList,
+  Image,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
+  StyleSheet,
+  Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  Image,
+  View,
 } from 'react-native';
-import { fetchPostComments, addComment } from '../utils/postsServices';
 import { useAuthStore } from '../stores/auth';
+import { addComment, fetchPostComments } from '../utils/postsServices';
 
 const Avatar = ({ userName, avatarUrl, size = 32 }) => {
   const initials = userName
