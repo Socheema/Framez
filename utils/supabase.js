@@ -15,7 +15,7 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     storage: Platform.OS === "ios" || Platform.OS === "android" ? AsyncStorage : undefined,
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false,
+    detectSessionInUrl: Platform.OS === "web", // Enable URL detection only on web for magic links
   },
   realtime: {
     params: {

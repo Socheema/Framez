@@ -4,7 +4,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { useAuthStore } from '../stores/auth';
 
 export default function RootLayout() {
-  const { session, isLoaded, loadAuth } = useAuthStore();
+  const { session, isLoaded, loadAuth, isPasswordRecovery } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
 
@@ -18,15 +18,30 @@ export default function RootLayout() {
     if (!isLoaded) return; // Wait for auth to load
 
     const inAuthGroup = segments[0] === 'tabs';
+    const inUpdatePassword = segments[0] === 'updatePassword';
+    const inLogin = segments[0] === 'login';
+    const inWelcome = segments[0] === undefined || segments[0] === 'welcome' || segments[0] === 'index';
 
-    if (session && !inAuthGroup) {
+    // If this is a password recovery session, redirect to updatePassword page
+    if (session && isPasswordRecovery && !inUpdatePassword) {
+      router.replace('/updatePassword');
+      return;
+    }
+
+    // If user is in updatePassword but not in recovery mode, redirect to login
+    if (inUpdatePassword && !isPasswordRecovery) {
+      router.replace('/login');
+      return;
+    }
+
+    if (session && !inAuthGroup && !isPasswordRecovery && !inLogin) {
       // ✅ User is signed in but not in protected route, redirect to tabs
       router.replace('/tabs');
     } else if (!session && inAuthGroup) {
-      // ✅ User is not signed in but trying to access protected route, redirect to index
+      // ✅ User is not signed in but trying to access protected route, redirect to welcome
       router.replace('/');
     }
-  }, [session, isLoaded, segments]);
+  }, [session, isLoaded, segments, isPasswordRecovery]);
 
   // Show loading while checking auth
   if (!isLoaded) {

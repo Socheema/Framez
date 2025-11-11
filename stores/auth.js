@@ -8,6 +8,7 @@ export const useAuthStore = create((set, get) => ({
   profile: null,
   isLoaded: false,
   error: null,
+  isPasswordRecovery: false, // Track if this is a password recovery session
 
   // ✅ Load saved session when app starts
   loadAuth: async () => {
@@ -17,11 +18,17 @@ export const useAuthStore = create((set, get) => ({
 
       if (error) {
         console.error('Session load error:', error);
-        set({ session: null, user: null, profile: null, isLoaded: true });
+        set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
         return;
       }
 
       if (data?.session) {
+        // Check if this is a password recovery session
+        // Supabase sets a recovery token when user clicks the magic link
+        const isRecovery = data.session.user.aud === 'authenticated' && 
+                          (data.session.user.recovery_sent_at || 
+                           data.session.user.user_metadata?.is_recovery);
+
         // Fetch user profile
         const { data: profileData } = await supabase
           .from('profiles')
@@ -33,14 +40,15 @@ export const useAuthStore = create((set, get) => ({
           session: data.session,
           user: data.session.user,
           profile: profileData,
-          isLoaded: true
+          isLoaded: true,
+          isPasswordRecovery: isRecovery || false,
         });
       } else {
-        set({ session: null, user: null, profile: null, isLoaded: true });
+        set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
       }
     } catch (error) {
       console.error('Error loading auth:', error);
-      set({ session: null, user: null, profile: null, isLoaded: true });
+      set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
     }
   },
 
@@ -178,7 +186,8 @@ export const useAuthStore = create((set, get) => ({
         session: null,
         user: null,
         profile: null,
-        error: null
+        error: null,
+        isPasswordRecovery: false, // Clear recovery flag
       });
       return { success: true };
     } catch (error) {
@@ -186,6 +195,9 @@ export const useAuthStore = create((set, get) => ({
       return { success: false, error: error.message };
     }
   },
+
+  // Clear password recovery flag
+  clearPasswordRecovery: () => set({ isPasswordRecovery: false }),
 
   // ✅ Update user profile
   updateProfile: async (updates) => {

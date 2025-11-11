@@ -335,25 +335,25 @@ export default function Feed() {
           console.log('✏️ Post updated:', updatedPost.id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             return post.id === updatedPost.id
               ? { ...post, ...updatedPost }
               : post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
         onDelete: (deletedPost) => {
           console.log('🗑️ Post deleted:', deletedPost.id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
-          const updatedPosts = currentPosts.filter(post => 
+
+          const updatedPosts = currentPosts.filter(post =>
             post && post.id && post.id !== deletedPost.id
           );
-          
+
           setPosts(updatedPosts);
         },
       },
@@ -363,7 +363,7 @@ export default function Feed() {
           console.log('❤️ New like on post:', newLike.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             if (post.id === newLike.post_id) {
@@ -374,14 +374,14 @@ export default function Feed() {
             }
             return post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
         onDelete: (deletedLike) => {
           console.log('💔 Like removed from post:', deletedLike.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             if (post.id === deletedLike.post_id) {
@@ -392,7 +392,7 @@ export default function Feed() {
             }
             return post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
       },
@@ -402,7 +402,7 @@ export default function Feed() {
           console.log('💬 New comment on post:', newComment.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             if (post.id === newComment.post_id) {
@@ -413,14 +413,14 @@ export default function Feed() {
             }
             return post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
         onDelete: (deletedComment) => {
           console.log('🗑️ Comment deleted from post:', deletedComment.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             if (post.id === deletedComment.post_id) {
@@ -431,7 +431,7 @@ export default function Feed() {
             }
             return post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
       },
@@ -441,7 +441,7 @@ export default function Feed() {
           console.log('👤 Profile updated:', updatedProfile.id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
-          
+
           const updatedPosts = currentPosts.map(post => {
             if (!post || !post.id) return post;
             if (post.user_id === updatedProfile.id) {
@@ -453,7 +453,7 @@ export default function Feed() {
             }
             return post;
           }).filter(post => post && post.id);
-          
+
           setPosts(updatedPosts);
         },
       },

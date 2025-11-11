@@ -116,6 +116,12 @@ export default function Login() {
           )}
         </TouchableOpacity>
 
+        <Link href="/forgotPassword" asChild>
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+        </Link>
+
         <View style={styles.linkContainer}>
           <Text style={styles.linkText}>Don't have an account? </Text>
           <Link href="/signup" asChild>
@@ -177,6 +183,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  forgotPasswordContainer: {
+    alignItems: 'center',
+    marginTop: 16,
+  },
+  forgotPasswordText: {
+    color: '#0095f6',
+    fontSize: 14,
   },
   linkContainer: {
     flexDirection: 'row',
