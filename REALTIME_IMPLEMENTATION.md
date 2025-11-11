@@ -88,14 +88,14 @@ useEffect(() => {
     await fetchPosts(false); // Full refresh for complete data
   },
   onUpdate: (updatedPost) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
         post.id === updatedPost.id ? { ...post, ...updatedPost } : post
       )
     );
   },
   onDelete: (deletedPost) => {
-    setPosts(prevPosts => 
+    setPosts(prevPosts =>
       prevPosts.filter(post => post.id !== deletedPost.id)
     );
   },
@@ -111,18 +111,18 @@ useEffect(() => {
 {
   table: 'likes',
   onInsert: (newLike) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === newLike.post_id 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === newLike.post_id
           ? { ...post, likes_count: (post.likes_count || 0) + 1 }
           : post
       )
     );
   },
   onDelete: (deletedLike) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === deletedLike.post_id 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === deletedLike.post_id
           ? { ...post, likes_count: Math.max((post.likes_count || 1) - 1, 0) }
           : post
       )
@@ -139,18 +139,18 @@ useEffect(() => {
 {
   table: 'comments',
   onInsert: (newComment) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === newComment.post_id 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === newComment.post_id
           ? { ...post, comments_count: (post.comments_count || 0) + 1 }
           : post
       )
     );
   },
   onDelete: (deletedComment) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.id === deletedComment.post_id 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.id === deletedComment.post_id
           ? { ...post, comments_count: Math.max((post.comments_count || 1) - 1, 0) }
           : post
       )
@@ -167,9 +167,9 @@ useEffect(() => {
 {
   table: 'profiles',
   onUpdate: (updatedProfile) => {
-    setPosts(prevPosts => 
-      prevPosts.map(post => 
-        post.user_id === updatedProfile.id 
+    setPosts(prevPosts =>
+      prevPosts.map(post =>
+        post.user_id === updatedProfile.id
           ? {
               ...post,
               user_name: updatedProfile.full_name || updatedProfile.username,

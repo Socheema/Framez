@@ -21,7 +21,6 @@ import {
 import CommentsModal from '../../components/CommentsModal';
 import { useAuthStore } from '../../stores/auth';
 import { usePostsStore } from '../../stores/postStore';
-import { subscribeToMultipleTables } from '../../utils/supabase';
 import {
   fetchAllPosts,
   getPostLikesCount,
@@ -29,6 +28,7 @@ import {
   likePost,
   unlikePost,
 } from '../../utils/postsServices';
+import { subscribeToMultipleTables } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 
@@ -333,9 +333,9 @@ export default function Feed() {
         },
         onUpdate: (updatedPost) => {
           console.log('✏️ Post updated:', updatedPost.id);
-          setPosts(prevPosts => 
-            prevPosts.map(post => 
-              post.id === updatedPost.id 
+          setPosts(prevPosts =>
+            prevPosts.map(post =>
+              post.id === updatedPost.id
                 ? { ...post, ...updatedPost }
                 : post
             )
@@ -343,7 +343,7 @@ export default function Feed() {
         },
         onDelete: (deletedPost) => {
           console.log('🗑️ Post deleted:', deletedPost.id);
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.filter(post => post.id !== deletedPost.id)
           );
         },
@@ -353,7 +353,7 @@ export default function Feed() {
         onInsert: async (newLike) => {
           console.log('❤️ New like on post:', newLike.post_id);
           // Update the likes count for the specific post
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.map(post => {
               if (post.id === newLike.post_id) {
                 return {
@@ -368,7 +368,7 @@ export default function Feed() {
         onDelete: (deletedLike) => {
           console.log('💔 Like removed from post:', deletedLike.post_id);
           // Update the likes count for the specific post
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.map(post => {
               if (post.id === deletedLike.post_id) {
                 return {
@@ -386,7 +386,7 @@ export default function Feed() {
         onInsert: (newComment) => {
           console.log('💬 New comment on post:', newComment.post_id);
           // Update the comments count for the specific post
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.map(post => {
               if (post.id === newComment.post_id) {
                 return {
@@ -401,7 +401,7 @@ export default function Feed() {
         onDelete: (deletedComment) => {
           console.log('🗑️ Comment deleted from post:', deletedComment.post_id);
           // Update the comments count for the specific post
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.map(post => {
               if (post.id === deletedComment.post_id) {
                 return {
@@ -419,7 +419,7 @@ export default function Feed() {
         onUpdate: (updatedProfile) => {
           console.log('👤 Profile updated:', updatedProfile.id);
           // Update all posts by this user with new profile info
-          setPosts(prevPosts => 
+          setPosts(prevPosts =>
             prevPosts.map(post => {
               if (post.user_id === updatedProfile.id) {
                 return {

@@ -1,7 +1,7 @@
-import { AppState, Platform } from "react-native"
-import "react-native-url-polyfill/auto"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { createClient } from "@supabase/supabase-js"
+import { AppState, Platform } from "react-native"
+import "react-native-url-polyfill/auto"
 
 // 🧩 Your project credentials
 const supabaseUrl = "https://qligxzesycdcchyznncw.supabase.co"
@@ -50,10 +50,10 @@ export function subscribeToTable(table, { onInsert, onUpdate, onDelete }) {
     .channel(`${table}_changes`)
     .on(
       'postgres_changes',
-      { 
-        event: 'INSERT', 
-        schema: 'public', 
-        table: table 
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: table
       },
       (payload) => {
         if (onInsert) onInsert(payload.new);
@@ -61,10 +61,10 @@ export function subscribeToTable(table, { onInsert, onUpdate, onDelete }) {
     )
     .on(
       'postgres_changes',
-      { 
-        event: 'UPDATE', 
-        schema: 'public', 
-        table: table 
+      {
+        event: 'UPDATE',
+        schema: 'public',
+        table: table
       },
       (payload) => {
         if (onUpdate) onUpdate(payload.new, payload.old);
@@ -72,10 +72,10 @@ export function subscribeToTable(table, { onInsert, onUpdate, onDelete }) {
     )
     .on(
       'postgres_changes',
-      { 
-        event: 'DELETE', 
-        schema: 'public', 
-        table: table 
+      {
+        event: 'DELETE',
+        schema: 'public',
+        table: table
       },
       (payload) => {
         if (onDelete) onDelete(payload.old);
@@ -96,7 +96,7 @@ export function subscribeToTable(table, { onInsert, onUpdate, onDelete }) {
  * @returns {function} Cleanup function to unsubscribe from all
  */
 export function subscribeToMultipleTables(tables) {
-  const subscriptions = tables.map(({ table, onInsert, onUpdate, onDelete }) => 
+  const subscriptions = tables.map(({ table, onInsert, onUpdate, onDelete }) =>
     subscribeToTable(table, { onInsert, onUpdate, onDelete })
   );
 
