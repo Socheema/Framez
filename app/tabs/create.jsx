@@ -276,7 +276,7 @@ export default function CreatePost() {
           <TextInput
             style={styles.captionInput}
             placeholder="Write a caption..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.textLight}
             value={caption}
             onChangeText={setCaption}
             multiline
@@ -292,7 +292,7 @@ export default function CreatePost() {
         {/* Loading Indicator */}
         {loading && (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0095f6" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
             <Text style={styles.loadingText}>Creating your post...</Text>
           </View>
         )}

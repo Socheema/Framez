@@ -295,13 +295,13 @@ export default function Profile() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{userName}</Text>
         <TouchableOpacity onPress={handleLogout} style={styles.logoutButton}>
-          <Ionicons name="log-out-outline" size={28} color="#000" />
+          <Ionicons name="log-out-outline" size={28} color={theme.colors.text} />
         </TouchableOpacity>
       </View>
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0095f6" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
         <FlatList

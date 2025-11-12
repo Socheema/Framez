@@ -12,6 +12,8 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 import { supabase } from '../../utils/supabase';
 
 export default function ResetPassword() {
@@ -159,7 +161,7 @@ export default function ResetPassword() {
     return (
       <View style={styles.container}>
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0095f6" />
+          <ActivityIndicator size="large" color={theme.colors.primary} />
           <Text style={styles.loadingText}>Verifying reset link...</Text>
         </View>
       </View>
@@ -170,7 +172,7 @@ export default function ResetPassword() {
     return (
       <View style={styles.container}>
         <View style={styles.inner}>
-          <Ionicons name="alert-circle-outline" size={64} color="#ff4444" style={styles.errorIcon} />
+          <Ionicons name="alert-circle-outline" size={64} color={theme.colors.rose} style={styles.errorIcon} />
           <Text style={styles.errorTitle}>Invalid Reset Link</Text>
           <Text style={styles.errorDescription}>
             {message.text || 'This password reset link is invalid or has expired.'}
@@ -223,7 +225,7 @@ export default function ResetPassword() {
             <TextInput
               style={styles.passwordInput}
               placeholder="New Password"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textLight}
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               value={newPassword}
@@ -239,7 +241,7 @@ export default function ResetPassword() {
               <Ionicons
                 name={showPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={22}
-                color="#999"
+                color={theme.colors.textLight}
               />
             </TouchableOpacity>
           </View>
@@ -248,7 +250,7 @@ export default function ResetPassword() {
             <TextInput
               style={styles.passwordInput}
               placeholder="Confirm New Password"
-              placeholderTextColor="#999"
+              placeholderTextColor={theme.colors.textLight}
               secureTextEntry={!showConfirmPassword}
               autoCapitalize="none"
               value={confirmPassword}
@@ -264,7 +266,7 @@ export default function ResetPassword() {
               <Ionicons
                 name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
                 size={22}
-                color="#999"
+                color={theme.colors.textLight}
               />
             </TouchableOpacity>
           </View>
@@ -289,7 +291,7 @@ export default function ResetPassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+    backgroundColor: '#fff',
   },
   scrollContent: {
     flexGrow: 1,
@@ -297,7 +299,8 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(3),
   },
   loadingContainer: {
     flex: 1,
@@ -305,97 +308,101 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#999',
-    marginTop: 16,
-    fontSize: 16,
+    color: theme.colors.textLight,
+    marginTop: hp(2),
+    fontSize: hp(2),
   },
   errorIcon: {
     alignSelf: 'center',
-    marginBottom: 16,
+    marginBottom: hp(2),
   },
   errorTitle: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontSize: hp(3),
+    fontWeight: theme.fonts.bold,
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 12,
+    marginBottom: hp(1.5),
   },
   errorDescription: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: hp(1.8),
+    color: theme.colors.textLight,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
+    marginBottom: hp(4),
+    lineHeight: hp(2.5),
   },
   logo: {
-    fontSize: 32,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: hp(3.5),
+    color: theme.colors.text,
+    fontWeight: theme.fonts.extrabold,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: hp(1),
   },
   subtitle: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: hp(1.8),
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
+    marginBottom: hp(4),
+    lineHeight: hp(2.5),
   },
   passwordContainer: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: theme.radius.xl,
+    marginBottom: hp(1.5),
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: theme.colors.gray,
   },
   passwordInput: {
     flex: 1,
-    color: '#fff',
-    padding: 16,
+    color: theme.colors.text,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.8),
+    fontSize: hp(2),
   },
   eyeIcon: {
-    paddingHorizontal: 16,
+    paddingHorizontal: wp(4),
   },
   button: {
     width: '100%',
-    backgroundColor: '#0095f6',
-    padding: 16,
-    borderRadius: 8,
+    backgroundColor: theme.colors.primary,
+    paddingVertical: hp(1.8),
+    borderRadius: theme.radius.xl,
     alignItems: 'center',
-    marginTop: 12,
+    marginTop: hp(1.5),
   },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    fontWeight: theme.fonts.bold,
+    fontSize: hp(2),
   },
   messageContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    borderRadius: theme.radius.md,
+    marginBottom: hp(1.5),
     borderLeftWidth: 3,
   },
   errorContainer: {
-    backgroundColor: '#ff444420',
-    borderLeftColor: '#ff4444',
+    backgroundColor: `${theme.colors.rose}20`,
+    borderLeftColor: theme.colors.rose,
   },
   successContainer: {
-    backgroundColor: '#00ff0020',
-    borderLeftColor: '#00ff00',
+    backgroundColor: `${theme.colors.primary}20`,
+    borderLeftColor: theme.colors.primary,
   },
   messageText: {
     textAlign: 'center',
+    fontSize: hp(1.6),
   },
   errorText: {
-    color: '#ff4444',
+    color: theme.colors.rose,
   },
   successText: {
-    color: '#00ff00',
+    color: theme.colors.primary,
   },
 });

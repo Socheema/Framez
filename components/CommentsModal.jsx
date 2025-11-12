@@ -131,7 +131,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
         {/* Comments List */}
         {loading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#0095f6" />
+            <ActivityIndicator size="large" color={theme.colors.primary} />
           </View>
         ) : comments.length === 0 ? (
           <View style={styles.emptyContainer}>
@@ -154,7 +154,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
           <TextInput
             style={styles.input}
             placeholder="Add a comment..."
-            placeholderTextColor="#999"
+            placeholderTextColor={theme.colors.textLight}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -166,7 +166,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
             style={styles.sendButton}
           >
             {submitting ? (
-              <ActivityIndicator size="small" color="#0095f6" />
+              <ActivityIndicator size="small" color={theme.colors.primary} />
             ) : (
               <Text
                 style={[

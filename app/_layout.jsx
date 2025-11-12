@@ -1,6 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { theme } from '../constants/theme';
 import { useAuthStore } from '../stores/auth';
 
 export default function RootLayout() {
@@ -47,8 +48,8 @@ export default function RootLayout() {
   // Show loading while checking auth
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#000' }}>
-        <ActivityIndicator size="large" color="#0095f6" />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
