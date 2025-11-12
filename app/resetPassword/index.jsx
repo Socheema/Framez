@@ -128,7 +128,7 @@ export default function ResetPassword() {
     }
 
     setLoading(true);
-    
+
     try {
       // Update the password
       const { error } = await supabase.auth.updateUser({

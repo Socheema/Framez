@@ -3,10 +3,23 @@ import { createClient } from "@supabase/supabase-js"
 import { AppState, Platform } from "react-native"
 import "react-native-url-polyfill/auto"
 
-// 🧩 Your project credentials
-const supabaseUrl = "https://qligxzesycdcchyznncw.supabase.co"
-const supabaseAnonKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsaWd4emVzeWNkY2NoeXpubmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NjE5MTksImV4cCI6MjA3ODMzNzkxOX0.z0Uux9yaRgRX5racdcagN_Se818nfc9ZLBkIbPUk6Vw"
+// 🧩 Supabase Configuration from Environment Variables
+// Get your credentials from: Supabase Dashboard → Settings → API
+// Add them to .env file (see .env.example for template)
+const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+
+// ✅ Validate environment variables are loaded
+if (!supabaseUrl || !supabaseAnonKey) {
+  throw new Error(
+    '❌ Missing Supabase environment variables!\n\n' +
+    'Please ensure you have:\n' +
+    '1. Created a .env file in the project root\n' +
+    '2. Added EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY\n' +
+    '3. Restarted your dev server: npx expo start --clear\n\n' +
+    'See .env.example for instructions.'
+  )
+}
 
 // 🛡️ Safe client creation with Realtime support
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

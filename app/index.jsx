@@ -1,7 +1,7 @@
-import { useEffect } from 'react'
-import { View } from 'react-native'
 import { Redirect, useRouter } from 'expo-router'
 import * as SplashScreen from 'expo-splash-screen'
+import { useEffect } from 'react'
+import { View } from 'react-native'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../utils/supabase'
 

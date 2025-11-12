@@ -90,7 +90,7 @@ export default function UpdatePassword() {
 
     setLoading(true);
     setIsUpdating(true); // Prevent session checks
-    
+
     try {
       // Update the user's password - this will only succeed once
       const { error: updateError } = await supabase.auth.updateUser({
