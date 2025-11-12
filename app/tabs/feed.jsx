@@ -91,7 +91,7 @@ const EmptyState = ({ onRefresh }) => (
 );
 
 // Post card component
-const PostCard = ({ post, currentUserId, onCommentPress, onRefresh }) => {
+const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
@@ -188,11 +188,17 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh }) => {
     <View style={styles.postCard}>
       {/* Header */}
       <View style={styles.postHeader}>
-        <Avatar userName={post.user_name} avatarUrl={post.avatar_url} size={32} />
-        <View style={styles.postHeaderText}>
-          <Text style={styles.username}>{post.user_name || 'Anonymous'}</Text>
-          <Text style={styles.timestamp}>{formatTime(post.created_at)}</Text>
-        </View>
+        <TouchableOpacity 
+          style={styles.userInfoContainer}
+          onPress={() => onUserPress(post.user_id)}
+          activeOpacity={0.7}
+        >
+          <Avatar userName={post.user_name} avatarUrl={post.avatar_url} size={32} />
+          <View style={styles.postHeaderText}>
+            <Text style={styles.username}>{post.user_name || 'Anonymous'}</Text>
+            <Text style={styles.timestamp}>{formatTime(post.created_at)}</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
           <Ionicons name="ellipsis-horizontal" size={20} color="#262626" />
         </TouchableOpacity>
@@ -492,6 +498,19 @@ export default function Feed() {
     fetchPosts(true);
   };
 
+  // Handle navigation to user profile
+  const handleUserPress = (userId) => {
+    if (!userId) return;
+    
+    // Don't navigate if clicking on own profile
+    if (userId === user?.id) {
+      Alert.alert('Your Profile', 'Visit the Profile tab to view your profile');
+      return;
+    }
+    
+    router.push(`/userProfile/${userId}`);
+  };
+
   // Render post item with safety check
   const renderPost = ({ item }) => {
     if (!item || !item.id) {
@@ -504,6 +523,7 @@ export default function Feed() {
         currentUserId={user?.id}
         onCommentPress={handleCommentPress}
         onRefresh={() => fetchPosts(true)}
+        onUserPress={handleUserPress}
       />
     );
   };
@@ -620,6 +640,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: wp(3),
     paddingVertical: hp(1.2),
+  },
+  userInfoContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
   avatar: {
     backgroundColor: theme.colors.primary,

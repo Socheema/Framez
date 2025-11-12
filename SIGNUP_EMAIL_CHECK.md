@@ -40,7 +40,7 @@ signUp: async ({ name, email, password }) => {
       data: { full_name: name.trim() }
     }
   });
-  
+
   if (error) {
     if (error.message.includes('User already registered')) {
       return { success: false, error: 'This email is already registered. Please sign in instead.' };
@@ -54,7 +54,7 @@ signUp: async ({ name, email, password }) => {
 ```javascript
 signUp: async ({ name, email, password }) => {
   const normalizedEmail = email.trim().toLowerCase();
-  
+
   // 🔍 Check if email exists BEFORE creating account
   const { data: existingUsers, error: queryError } = await supabase
     .from('profiles')
@@ -76,7 +76,7 @@ signUp: async ({ name, email, password }) => {
     password,
     options: { data: { full_name: name.trim() } }
   });
-  
+
   // Handle errors with clear message
   if (error) {
     if (error.message.includes('User already registered')) {
@@ -196,9 +196,9 @@ The error message is automatically displayed by the existing message system:
 if (result.success) {
   // Show success message
 } else {
-  setMessage({ 
-    type: 'error', 
-    text: result.error || 'Signup failed. Please try again.' 
+  setMessage({
+    type: 'error',
+    text: result.error || 'Signup failed. Please try again.'
   });
 }
 ```
@@ -287,7 +287,7 @@ const checkEmailAvailability = debounce(async (email) => {
     .select('email')
     .eq('email', email.trim().toLowerCase())
     .limit(1);
-  
+
   return data.length === 0; // true if available
 }, 500);
 
@@ -323,6 +323,6 @@ useEffect(() => {
 - ✅ Maintains existing functionality
 - ✅ No breaking changes
 
-**Status**: ✅ Implemented and tested  
-**Version**: 1.0  
+**Status**: ✅ Implemented and tested
+**Version**: 1.0
 **Last Updated**: November 12, 2025

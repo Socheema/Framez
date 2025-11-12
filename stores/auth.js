@@ -59,7 +59,7 @@ export const useAuthStore = create((set, get) => ({
 
       // 🔍 Check if email already exists in the database
       const normalizedEmail = email.trim().toLowerCase();
-      
+
       const { data: existingUsers, error: queryError } = await supabase
         .from('profiles')
         .select('email')
