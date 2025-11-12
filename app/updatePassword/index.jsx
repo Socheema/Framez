@@ -15,7 +15,7 @@ import {
 import Button from '../../components/Button';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { theme } from '../../constants/theme';
-import { hp, wp } from '../../helpers/common';
+import { hp } from '../../helpers/common';
 import { supabase } from '../../utils/supabase';
 
 export default function UpdatePassword() {
@@ -257,7 +257,11 @@ export default function UpdatePassword() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   scrollContent: {
     flexGrow: 1,
@@ -265,90 +269,80 @@ const styles = StyleSheet.create({
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(3),
+    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(6),
   },
   icon: {
     alignSelf: 'center',
-    marginBottom: 24,
+    marginBottom: hp(3),
   },
   logo: {
-    fontSize: 32,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: hp(3.5),
+    color: theme.colors.text,
+    fontWeight: theme.fonts.extrabold,
     textAlign: 'center',
-    marginBottom: 8,
+    marginBottom: hp(1),
   },
   subtitle: {
-    fontSize: 14,
-    color: '#999',
+    fontSize: hp(1.7),
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 32,
-    lineHeight: 20,
+    marginBottom: hp(3),
+    lineHeight: hp(2.5),
   },
   passwordContainer: {
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1a1a1a',
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#fff',
+    borderRadius: theme.radius.xl,
+    marginBottom: hp(1.5),
     borderWidth: 1,
-    borderColor: '#333',
+    borderColor: theme.colors.gray,
   },
   passwordInput: {
     flex: 1,
-    color: '#fff',
-    padding: 16,
+    color: theme.colors.text,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.8),
+    fontSize: hp(2),
   },
   eyeIcon: {
-    paddingHorizontal: 16,
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#0095f6',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    paddingHorizontal: wp(4),
   },
   cancelContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: hp(2),
   },
   cancelText: {
-    color: '#999',
-    fontSize: 14,
+    color: theme.colors.text,
+    fontSize: hp(1.6),
+    fontWeight: theme.fonts.semibold,
   },
   messageContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    borderRadius: theme.radius.md,
+    marginBottom: hp(1.5),
     borderLeftWidth: 3,
   },
   errorContainer: {
-    backgroundColor: '#ff444420',
-    borderLeftColor: '#ff4444',
+    backgroundColor: `${theme.colors.rose}20`,
+    borderLeftColor: theme.colors.rose,
   },
   successContainer: {
-    backgroundColor: '#00ff0020',
-    borderLeftColor: '#00ff00',
+    backgroundColor: `${theme.colors.primary}20`,
+    borderLeftColor: theme.colors.primary,
   },
   messageText: {
     textAlign: 'center',
+    fontSize: hp(1.6),
   },
   errorText: {
-    color: '#ff4444',
+    color: theme.colors.rose,
   },
   successText: {
-    color: '#00ff00',
+    color: theme.colors.primary,
   },
 });

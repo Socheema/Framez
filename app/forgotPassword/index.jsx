@@ -142,10 +142,10 @@ export default function ForgotPassword() {
                   }}
                 />
 
-                <Button 
-                  title="Send Reset Link" 
-                  onPress={handleSendResetLink} 
-                  loading={loading} 
+                <Button
+                  title="Send Reset Link"
+                  onPress={handleSendResetLink}
+                  loading={loading}
                 />
               </>
             )}
