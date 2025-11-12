@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, TouchableOpacity } from "react-native";
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
 import ScreenWrapper from "../../components/ScreenWrapper";
 import { StatusBar } from "expo-status-bar";
 import { wp, hp } from "../../helpers/common";
@@ -89,6 +89,8 @@ const styles = StyleSheet.create({
   footer: {
     gap: 30,
     width: "100%",
+    // Add extra bottom padding on Android to clear navigation bar
+    paddingBottom: Platform.OS === "android" ? 32 : 0,
   },
   buttonTextContainer: {
     flexDirection: "row",
