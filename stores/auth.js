@@ -57,8 +57,32 @@ export const useAuthStore = create((set, get) => ({
     try {
       set({ error: null });
 
+      // 🔍 Check if email already exists in the database
+      const normalizedEmail = email.trim().toLowerCase();
+      
+      const { data: existingUsers, error: queryError } = await supabase
+        .from('profiles')
+        .select('email')
+        .eq('email', normalizedEmail)
+        .limit(1);
+
+      if (queryError) {
+        console.error('Error checking existing email:', queryError);
+        // Continue with signup if query fails (don't block user)
+      }
+
+      // If email exists, show clear message
+      if (existingUsers && existingUsers.length > 0) {
+        const errorMsg = 'An account with this email already exists. Please log in.';
+        set({ error: errorMsg });
+        return {
+          success: false,
+          error: errorMsg
+        };
+      }
+
       const { data, error } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
+        email: normalizedEmail,
         password,
         options: {
           data: {
@@ -69,10 +93,10 @@ export const useAuthStore = create((set, get) => ({
 
       if (error) {
         if (error.message.includes('User already registered')) {
-          set({ error: 'This email is already registered.' });
+          set({ error: 'An account with this email already exists. Please log in.' });
           return {
             success: false,
-            error: 'This email is already registered. Please sign in instead.'
+            error: 'An account with this email already exists. Please log in.'
           };
         }
         set({ error: error.message });
