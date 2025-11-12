@@ -99,13 +99,21 @@ const EmptyState = () => (
 
 export default function Profile() {
   const router = useRouter();
-  const { user, profile, logout } = useAuthStore();
+  const { user, profile, logout, session } = useAuthStore();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [localAvatarUrl, setLocalAvatarUrl] = useState(profile?.avatar_url);
+
+  // 🔒 Defensive auth check - redirect if session is lost
+  useEffect(() => {
+    if (!session) {
+      console.log('⚠️ Session lost in profile - redirecting to login');
+      router.replace('/login');
+    }
+  }, [session]);
 
   useEffect(() => {
     loadUserPosts();

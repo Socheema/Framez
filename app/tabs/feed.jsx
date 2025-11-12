@@ -280,13 +280,21 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh }) => {
 // Main Feed Component
 export default function Feed() {
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, session } = useAuthStore();
   const { posts, setPosts, loading, setLoading } = usePostsStore();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
   const [initialLoad, setInitialLoad] = useState(true);
   const [selectedPost, setSelectedPost] = useState(null);
   const [commentsModalVisible, setCommentsModalVisible] = useState(false);
+
+  // 🔒 Defensive auth check - redirect if session is lost
+  useEffect(() => {
+    if (!session) {
+      console.log('⚠️ Session lost in feed - redirecting to login');
+      router.replace('/login');
+    }
+  }, [session]);
 
   // Fetch posts from Supabase
   const fetchPosts = async (showRefreshing = false) => {

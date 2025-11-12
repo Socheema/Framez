@@ -27,7 +27,15 @@ export default function CreatePost() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const addPost = usePostsStore((state) => state.addPost);
-  const { user } = useAuthStore();
+  const { user, session } = useAuthStore();
+
+  // 🔒 Defensive auth check - redirect if session is lost
+  useEffect(() => {
+    if (!session) {
+      console.log('⚠️ Session lost in create - redirecting to login');
+      router.replace('/login');
+    }
+  }, [session]);
 
   // Request permissions and pick image
   const pickImage = async () => {

@@ -1,5 +1,5 @@
 import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -16,12 +16,20 @@ import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 
 export default function Login() {
-  const { signIn } = useAuthStore();
+  const { signIn, session } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+
+  // 🔒 Redirect if already authenticated
+  useEffect(() => {
+    if (session) {
+      console.log('✅ Already authenticated - redirecting to tabs');
+      router.replace('/tabs');
+    }
+  }, [session]);
 
   const validateEmail = (email) => /\S+@\S+\.\S+/.test(email);
 
