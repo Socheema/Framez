@@ -19,7 +19,11 @@ import {
   View
 } from 'react-native';
 import CommentsModal from '../../components/CommentsModal';
+import ConversationModal from '../../components/ConversationModal';
+import FloatingMessageButton from '../../components/FloatingMessageButton';
+import MessageModal from '../../components/MessageModal';
 import { useAuthStore } from '../../stores/auth';
+import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
 import {
   fetchAllPosts,
@@ -559,6 +563,8 @@ export default function Feed() {
     );
   }
 
+  const messageStore = useMessageStore();
+
   return (
     <View style={styles.container}>
       {/* Header - REMOVED ICONS since tabs handle navigation */}
@@ -591,12 +597,27 @@ export default function Feed() {
         />
       )}
 
+      {/* Floating Message Button */}
+      <FloatingMessageButton />
+
       {/* Comments Modal */}
       <CommentsModal
         visible={commentsModalVisible}
         onClose={handleCloseComments}
         postId={selectedPost?.id}
         initialCount={selectedPost?.comments_count || 0}
+      />
+
+      {/* Conversation Modal */}
+      <ConversationModal
+        visible={messageStore.conversationModalVisible}
+        onClose={() => messageStore.toggleConversationModal()}
+      />
+
+      {/* Message Modal */}
+      <MessageModal
+        visible={messageStore.messageModalVisible}
+        onClose={() => messageStore.closeAllModals()}
       />
     </View>
   );

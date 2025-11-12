@@ -17,10 +17,15 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ConversationModal from '../../components/ConversationModal';
+import FloatingMessageButton from '../../components/FloatingMessageButton';
+import MessageModal from '../../components/MessageModal';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
-import { supabase } from '../../utils/supabase';
+import { useFollowStore } from '../../stores/followStore';
+import { useMessageStore } from '../../stores/messageStore';
+import { subscribeToMultipleTables, supabase } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 6) / 3; // 3 columns with 2px gaps
@@ -100,12 +105,18 @@ const EmptyState = () => (
 export default function Profile() {
   const router = useRouter();
   const { user, profile, logout, session } = useAuthStore();
+  const followStore = useFollowStore();
+  const messageStore = useMessageStore();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [localAvatarUrl, setLocalAvatarUrl] = useState(profile?.avatar_url);
+
+  // Get follow counts from store
+  const followerCount = user?.id ? followStore.getFollowerCount(user.id) : 0;
+  const followingCount = user?.id ? followStore.getFollowingCount(user.id) : 0;
 
   // 🔒 Defensive auth check - redirect if session is lost
   useEffect(() => {
@@ -117,7 +128,44 @@ export default function Profile() {
 
   useEffect(() => {
     loadUserPosts();
+    loadFollowCounts();
   }, [user]);
+
+  // Set up real-time subscriptions for follows
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const unsubscribe = subscribeToMultipleTables([
+      {
+        table: 'follows',
+        onInsert: (newFollow) => {
+          // Update counts if this follow involves the current user
+          if (newFollow.following_id === user.id || newFollow.follower_id === user.id) {
+            followStore.handleFollowInsert(newFollow);
+          }
+        },
+        onDelete: (deletedFollow) => {
+          // Update counts if this unfollow involves the current user
+          if (deletedFollow.following_id === user.id || deletedFollow.follower_id === user.id) {
+            followStore.handleFollowDelete(deletedFollow);
+          }
+        },
+      },
+    ]);
+
+    return () => unsubscribe();
+  }, [user?.id]);
+
+  const loadFollowCounts = async () => {
+    if (!user?.id) return;
+
+    try {
+      await followStore.loadFollowerCount(user.id);
+      await followStore.loadFollowingCount(user.id);
+    } catch (error) {
+      console.error('Error loading follow counts:', error);
+    }
+  };
 
   useEffect(() => {
     // Update local avatar when profile changes
@@ -292,6 +340,7 @@ export default function Profile() {
   const onRefresh = () => {
     setRefreshing(true);
     loadUserPosts();
+    loadFollowCounts();
   };
 
   const userName = profile?.username || profile?.full_name || user?.email?.split('@')[0] || 'User';
@@ -331,11 +380,11 @@ export default function Profile() {
                     <Text style={styles.statLabel}>Posts</Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>0</Text>
+                    <Text style={styles.statNumber}>{followerCount}</Text>
                     <Text style={styles.statLabel}>Followers</Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Text style={styles.statNumber}>0</Text>
+                    <Text style={styles.statNumber}>{followingCount}</Text>
                     <Text style={styles.statLabel}>Following</Text>
                   </View>
                 </View>
@@ -429,6 +478,21 @@ export default function Profile() {
           </View>
         </View>
       </Modal>
+
+      {/* Floating Message Button */}
+      <FloatingMessageButton />
+
+      {/* Conversation Modal */}
+      <ConversationModal
+        visible={messageStore.conversationModalVisible}
+        onClose={() => messageStore.toggleConversationModal()}
+      />
+
+      {/* Message Modal */}
+      <MessageModal
+        visible={messageStore.messageModalVisible}
+        onClose={() => messageStore.closeAllModals()}
+      />
     </View>
   );
 }

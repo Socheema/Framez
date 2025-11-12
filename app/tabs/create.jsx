@@ -15,9 +15,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import ConversationModal from '../../components/ConversationModal';
+import FloatingMessageButton from '../../components/FloatingMessageButton';
+import MessageModal from '../../components/MessageModal';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
+import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
 import { supabase } from '../../utils/supabase';
 
@@ -28,6 +32,7 @@ export default function CreatePost() {
   const router = useRouter();
   const addPost = usePostsStore((state) => state.addPost);
   const { user, session } = useAuthStore();
+  const messageStore = useMessageStore();
 
   // 🔒 Defensive auth check - redirect if session is lost
   useEffect(() => {
@@ -305,6 +310,21 @@ export default function CreatePost() {
           </View>
         )}
       </ScrollView>
+
+      {/* Floating Message Button */}
+      <FloatingMessageButton />
+
+      {/* Conversation Modal */}
+      <ConversationModal
+        visible={messageStore.conversationModalVisible}
+        onClose={() => messageStore.toggleConversationModal()}
+      />
+
+      {/* Message Modal */}
+      <MessageModal
+        visible={messageStore.messageModalVisible}
+        onClose={() => messageStore.closeAllModals()}
+      />
     </View>
   );
 }

@@ -12,10 +12,13 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import MessageModal from '../../components/MessageModal';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
-import { supabase } from '../../utils/supabase';
+import { useFollowStore } from '../../stores/followStore';
+import { useMessageStore } from '../../stores/messageStore';
+import { subscribeToMultipleTables, supabase } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 6) / 3; // 3 columns with 3px gaps
@@ -83,17 +86,60 @@ export default function UserProfile() {
   const { id } = useLocalSearchParams(); // Get user ID from route params
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
+  const followStore = useFollowStore();
+  const messageStore = useMessageStore();
   const [userProfile, setUserProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Get follow data from store
+  const isFollowing = followStore.isFollowing(id);
+  const followerCount = followStore.getFollowerCount(id);
+  const followingCount = followStore.getFollowingCount(id);
+
   useEffect(() => {
     if (id) {
       loadUserProfile();
       loadUserPosts();
+      loadFollowData();
     }
   }, [id]);
+
+  // Set up real-time subscriptions for follows
+  useEffect(() => {
+    if (!id) return;
+
+    const unsubscribe = subscribeToMultipleTables([
+      {
+        table: 'follows',
+        onInsert: (newFollow) => {
+          // Update counts if this follow involves the current profile
+          if (newFollow.following_id === id || newFollow.follower_id === id) {
+            followStore.handleFollowInsert(newFollow);
+          }
+        },
+        onDelete: (deletedFollow) => {
+          // Update counts if this unfollow involves the current profile
+          if (deletedFollow.following_id === id || deletedFollow.follower_id === id) {
+            followStore.handleFollowDelete(deletedFollow);
+          }
+        },
+      },
+    ]);
+
+    return () => unsubscribe();
+  }, [id]);
+
+  const loadFollowData = async () => {
+    if (!currentUser?.id || !id) return;
+
+    try {
+      await followStore.loadUserFollowData(currentUser.id, id);
+    } catch (error) {
+      console.error('Error loading follow data:', error);
+    }
+  };
 
   const loadUserProfile = async () => {
     try {
@@ -154,10 +200,56 @@ export default function UserProfile() {
     router.push(`/postDetail/${post.id}`);
   };
 
+  const handleFollowToggle = async () => {
+    if (!currentUser?.id) {
+      Alert.alert('Login Required', 'Please login to follow users');
+      return;
+    }
+
+    try {
+      if (isFollowing) {
+        // Unfollow
+        const success = await followStore.unfollowUser(currentUser.id, id);
+        if (!success) {
+          Alert.alert('Error', 'Failed to unfollow user');
+        }
+      } else {
+        // Follow
+        const success = await followStore.followUser(currentUser.id, id);
+        if (!success) {
+          Alert.alert('Error', 'Failed to follow user');
+        }
+      }
+    } catch (error) {
+      console.error('Error toggling follow:', error);
+      Alert.alert('Error', 'Something went wrong');
+    }
+  };
+
+  const handleMessagePress = async () => {
+    if (!currentUser?.id || !userProfile) {
+      Alert.alert('Login Required', 'Please login to send messages');
+      return;
+    }
+
+    // Open message modal with this user
+    await messageStore.openConversationWithUser(
+      currentUser.id,
+      id,
+      {
+        id: userProfile.id,
+        full_name: userProfile.full_name,
+        username: userProfile.username,
+        avatar_url: userProfile.avatar_url,
+      }
+    );
+  };
+
   const onRefresh = () => {
     setRefreshing(true);
     loadUserProfile();
     loadUserPosts();
+    loadFollowData();
   };
 
   const handleBack = () => {
@@ -237,11 +329,11 @@ export default function UserProfile() {
                   <Text style={styles.statLabel}>Posts</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>0</Text>
+                  <Text style={styles.statNumber}>{followerCount}</Text>
                   <Text style={styles.statLabel}>Followers</Text>
                 </View>
                 <View style={styles.statItem}>
-                  <Text style={styles.statNumber}>0</Text>
+                  <Text style={styles.statNumber}>{followingCount}</Text>
                   <Text style={styles.statLabel}>Following</Text>
                 </View>
               </View>
@@ -260,14 +352,23 @@ export default function UserProfile() {
             {!isOwnProfile && (
               <View style={styles.actionButtons}>
                 <TouchableOpacity
-                  style={styles.followButton}
-                  onPress={() => Alert.alert('Follow', 'Follow feature coming soon!')}
+                  style={[
+                    styles.followButton,
+                    isFollowing && styles.followingButton
+                  ]}
+                  onPress={handleFollowToggle}
+                  activeOpacity={0.7}
                 >
-                  <Text style={styles.followButtonText}>Follow</Text>
+                  <Text style={[
+                    styles.followButtonText,
+                    isFollowing && styles.followingButtonText
+                  ]}>
+                    {isFollowing ? 'Following' : 'Follow'}
+                  </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.messageButton}
-                  onPress={() => Alert.alert('Message', 'Messaging feature coming soon!')}
+                  onPress={handleMessagePress}
                 >
                   <Text style={styles.messageButtonText}>Message</Text>
                 </TouchableOpacity>
@@ -293,6 +394,12 @@ export default function UserProfile() {
         refreshing={refreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false}
+      />
+
+      {/* Message Modal */}
+      <MessageModal
+        visible={messageStore.messageModalVisible}
+        onClose={() => messageStore.closeAllModals()}
       />
     </View>
   );
@@ -428,6 +535,14 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: hp(1.7),
     fontWeight: theme.fonts.semibold,
+  },
+  followingButton: {
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: theme.colors.gray,
+  },
+  followingButtonText: {
+    color: theme.colors.text,
   },
   messageButton: {
     flex: 1,

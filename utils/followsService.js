@@ -14,7 +14,15 @@ export async function followUser(followerId, followingId) {
       .select()
       .single();
 
-    if (error) throw error;
+    // Handle duplicate follow (unique constraint violation)
+    if (error) {
+      if (error.code === '23505') {
+        console.log('Already following this user');
+        return null; // Return null to indicate already following
+      }
+      throw error;
+    }
+
     return data;
   } catch (error) {
     console.error('Error following user:', error);
