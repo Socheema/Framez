@@ -20,7 +20,14 @@ export default function RootLayout() {
     const inAuthGroup = segments[0] === 'tabs';
     const inUpdatePassword = segments[0] === 'updatePassword';
     const inLogin = segments[0] === 'login';
+    const inForgotPassword = segments[0] === 'forgotPassword';
     const inWelcome = segments[0] === undefined || segments[0] === 'welcome' || segments[0] === 'index';
+
+    // If user is on updatePassword page, let that page handle its own navigation
+    // Don't interfere with password update flow
+    if (inUpdatePassword) {
+      return;
+    }
 
     // If this is a password recovery session, redirect to updatePassword page
     if (session && isPasswordRecovery && !inUpdatePassword) {
@@ -28,13 +35,7 @@ export default function RootLayout() {
       return;
     }
 
-    // If user is in updatePassword but not in recovery mode, redirect to login
-    if (inUpdatePassword && !isPasswordRecovery) {
-      router.replace('/login');
-      return;
-    }
-
-    if (session && !inAuthGroup && !isPasswordRecovery && !inLogin) {
+    if (session && !inAuthGroup && !isPasswordRecovery && !inLogin && !inForgotPassword) {
       // ✅ User is signed in but not in protected route, redirect to tabs
       router.replace('/tabs');
     } else if (!session && inAuthGroup) {
