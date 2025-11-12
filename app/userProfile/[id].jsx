@@ -98,17 +98,34 @@ export default function UserProfile() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
+      
+      if (!id) {
+        console.error('No user ID provided');
+        return;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
-        .eq('id', id)
-        .single();
+        .eq('id', id);
 
-      if (error) throw error;
-      setUserProfile(data);
+      if (error) {
+        console.error('Supabase error:', error);
+        throw error;
+      }
+
+      // Check if we got any results
+      if (!data || data.length === 0) {
+        console.warn('No profile found for user ID:', id);
+        setUserProfile(null);
+        return;
+      }
+
+      setUserProfile(data[0]); // Get first result
     } catch (error) {
       console.error('Error loading user profile:', error);
       Alert.alert('Error', 'Failed to load user profile');
+      setUserProfile(null);
     } finally {
       setLoading(false);
     }
@@ -397,7 +414,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: wp(4),
     marginBottom: hp(2),
-    gap: wp(3),
   },
   followButton: {
     flex: 1,
@@ -405,6 +421,7 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.2),
     borderRadius: theme.radius.sm,
     alignItems: 'center',
+    marginRight: wp(1.5),
   },
   followButtonText: {
     color: '#fff',
@@ -419,6 +436,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: theme.colors.gray,
     alignItems: 'center',
+    marginLeft: wp(1.5),
   },
   messageButtonText: {
     color: theme.colors.text,
@@ -432,17 +450,18 @@ const styles = StyleSheet.create({
     paddingVertical: hp(1.5),
     borderTopWidth: 1,
     borderTopColor: '#efefef',
-    gap: 8,
   },
   gridHeaderText: {
     fontSize: hp(1.6),
     fontWeight: theme.fonts.semibold,
     color: '#000',
     letterSpacing: 1,
+    marginLeft: 8,
   },
   gridRow: {
-    gap: 3,
+    justifyContent: 'space-between',
     paddingHorizontal: 0,
+    marginBottom: 3,
   },
   gridItem: {
     width: GRID_ITEM_SIZE,
