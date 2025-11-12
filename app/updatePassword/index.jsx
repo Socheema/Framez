@@ -15,7 +15,7 @@ import {
 import Button from '../../components/Button';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { theme } from '../../constants/theme';
-import { hp } from '../../helpers/common';
+import { hp, wp } from '../../helpers/common';
 import { supabase } from '../../utils/supabase';
 
 export default function UpdatePassword() {
