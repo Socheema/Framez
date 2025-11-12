@@ -2,12 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { Tabs, useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { useAuthStore } from '../../stores/auth';
 
 export default function TabLayout() {
   const { session, isLoaded } = useAuthStore();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // 🔒 Protect tabs - redirect to login if not authenticated
   useEffect(() => {
@@ -31,6 +33,37 @@ export default function TabLayout() {
     return null;
   }
 
+  // Calculate platform-specific tab bar styles
+  const getTabBarStyle = () => {
+    if (Platform.OS === 'ios') {
+      // iOS: Use safe area insets for devices with home indicator
+      return {
+        ...styles.tabBar,
+        height: 65 + insets.bottom,
+        paddingBottom: insets.bottom > 0 ? insets.bottom : 8,
+      };
+    } else {
+      // Android: Add extra padding to clear system navigation buttons
+      // Most Android devices have 48dp navigation bar height
+      return {
+        ...styles.tabBar,
+        height: 80, // Taller to accommodate navigation buttons
+        paddingBottom: 16, // Extra padding to prevent overlap
+      };
+    }
+  };
+
+  // Calculate floating button position based on platform
+  const getFloatingButtonTop = () => {
+    if (Platform.OS === 'ios') {
+      // iOS: Position relative to tab bar with safe area consideration
+      return insets.bottom > 0 ? -32 : -28;
+    } else {
+      // Android: Position higher to clear navigation buttons
+      return -40; // More negative = higher up
+    }
+  };
+
   return (
     <Tabs
       screenOptions={{
@@ -38,7 +71,7 @@ export default function TabLayout() {
         tabBarActiveTintColor: theme.colors.text,
         tabBarInactiveTintColor: theme.colors.textLight,
         tabBarShowLabel: false,
-        tabBarStyle: styles.tabBar,
+        tabBarStyle: getTabBarStyle(),
         tabBarItemStyle: styles.tabBarItem,
       }}
     >
@@ -63,7 +96,10 @@ export default function TabLayout() {
         options={{
           title: "Create",
           tabBarIcon: ({ focused }) => (
-            <View style={styles.floatingButtonWrapper}>
+            <View style={[
+              styles.floatingButtonWrapper,
+              { top: getFloatingButtonTop() }
+            ]}>
               <View
                 style={[
                   styles.floatingButton,
@@ -106,8 +142,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: theme.colors.gray,
-    height: Platform.OS === "ios" ? 88 : 65,
-    paddingBottom: Platform.OS === "ios" ? 28 : 8,
+    // Height and paddingBottom are dynamically set in getTabBarStyle()
     paddingTop: 8,
     elevation: 8,
     shadowColor: "#000",
@@ -124,7 +159,7 @@ const styles = StyleSheet.create({
   // Floating button wrapper
   floatingButtonWrapper: {
     position: "absolute",
-    top: Platform.OS === "ios" ? -28 : -32,
+    // Top position is dynamically set via inline style in component
     width: 56,
     height: 56,
     borderRadius: 28,
