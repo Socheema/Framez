@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {

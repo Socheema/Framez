@@ -188,7 +188,7 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
     <View style={styles.postCard}>
       {/* Header */}
       <View style={styles.postHeader}>
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.userInfoContainer}
           onPress={() => onUserPress(post.user_id)}
           activeOpacity={0.7}
@@ -501,13 +501,13 @@ export default function Feed() {
   // Handle navigation to user profile
   const handleUserPress = (userId) => {
     if (!userId) return;
-    
+
     // Don't navigate if clicking on own profile
     if (userId === user?.id) {
       Alert.alert('Your Profile', 'Visit the Profile tab to view your profile');
       return;
     }
-    
+
     router.push(`/userProfile/${userId}`);
   };
 

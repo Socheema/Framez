@@ -48,13 +48,13 @@ export default function UserProfile() {
   const { id } = useLocalSearchParams(); // Get user ID from route
   const router = useRouter();
   const { user: currentUser } = useAuthStore();
-  
+
   // State
   const [userProfile, setUserProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Load user profile and posts
   useEffect(() => {
     if (id) {
@@ -62,7 +62,7 @@ export default function UserProfile() {
       loadUserPosts();
     }
   }, [id]);
-  
+
   // ... handlers and rendering
 }
 ```
@@ -76,7 +76,7 @@ const loadUserProfile = async () => {
     .select('*')
     .eq('id', id)
     .single();
-  
+
   if (error) throw error;
   setUserProfile(data);
 };
@@ -88,7 +88,7 @@ const loadUserPosts = async () => {
     .select('*')
     .eq('user_id', id)
     .order('created_at', { ascending: false });
-  
+
   if (error) throw error;
   setPosts(data || []);
 };
@@ -101,10 +101,10 @@ const loadUserPosts = async () => {
 **1. Updated PostCard Component**
 ```javascript
 // Added onUserPress prop
-const PostCard = ({ 
-  post, 
-  currentUserId, 
-  onCommentPress, 
+const PostCard = ({
+  post,
+  currentUserId,
+  onCommentPress,
   onRefresh,
   onUserPress  // NEW
 }) => {
@@ -115,7 +115,7 @@ const PostCard = ({
 **2. Made Avatar and Username Touchable**
 ```javascript
 <View style={styles.postHeader}>
-  <TouchableOpacity 
+  <TouchableOpacity
     style={styles.userInfoContainer}
     onPress={() => onUserPress(post.user_id)}
     activeOpacity={0.7}
@@ -134,13 +134,13 @@ const PostCard = ({
 ```javascript
 const handleUserPress = (userId) => {
   if (!userId) return;
-  
+
   // Don't navigate if clicking on own profile
   if (userId === user?.id) {
     Alert.alert('Your Profile', 'Visit the Profile tab to view your profile');
     return;
   }
-  
+
   router.push(`/userProfile/${userId}`);
 };
 ```
