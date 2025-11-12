@@ -81,11 +81,13 @@ export default function TabLayout() {
         options={{
           title: "Feed",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "home" : "home-outline"}
-              size={28}
-              color={color}
-            />
+            <View style={Platform.OS === 'android' ? styles.iconContainerAndroid : null}>
+              <Ionicons
+                name={focused ? "home" : "home-outline"}
+                size={28}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
@@ -119,11 +121,13 @@ export default function TabLayout() {
         options={{
           title: "Profile",
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={28}
-              color={color}
-            />
+            <View style={Platform.OS === 'android' ? styles.iconContainerAndroid : null}>
+              <Ionicons
+                name={focused ? "person" : "person-outline"}
+                size={28}
+                color={color}
+              />
+            </View>
           ),
         }}
       />
@@ -155,6 +159,10 @@ const styles = StyleSheet.create({
   },
   tabBarItem: {
     paddingTop: 8,
+  },
+  // Android-specific icon positioning adjustment
+  iconContainerAndroid: {
+    transform: [{ translateY: -8 }],
   },
   // Floating button wrapper
   floatingButtonWrapper: {
