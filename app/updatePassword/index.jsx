@@ -28,14 +28,15 @@ export default function UpdatePassword() {
   const [isRecoverySession, setIsRecoverySession] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false); // Track if we're in the update process
   const [hasChecked, setHasChecked] = useState(false); // Track if we've already checked
+  const [passwordUpdated, setPasswordUpdated] = useState(false); // Track if password was successfully updated
   const router = useRouter();
 
-  // Check if this is a password recovery session
+  // Check if this is a password recovery session - ONLY ONCE
   useEffect(() => {
-    if (!hasChecked && !isUpdating) {
+    if (!hasChecked && !isUpdating && !passwordUpdated) {
       checkRecoverySession();
     }
-  }, [hasChecked, isUpdating]);
+  }, []); // Empty dependency array - run only once on mount
 
   const checkRecoverySession = async () => {
     try {
@@ -51,8 +52,7 @@ export default function UpdatePassword() {
         return;
       }
 
-      // Check if this is a recovery session by looking at the user metadata
-      // or by checking if we came from a password reset flow
+      // Valid session exists for password recovery
       setIsRecoverySession(true);
       setHasChecked(true);
     } catch (error) {
@@ -67,6 +67,11 @@ export default function UpdatePassword() {
   };
 
   const handleUpdatePassword = async () => {
+    // Prevent duplicate submissions
+    if (loading || isUpdating || passwordUpdated) {
+      return;
+    }
+
     setMessage({ type: '', text: '' });
 
     // Validation
@@ -84,40 +89,51 @@ export default function UpdatePassword() {
     }
 
     setLoading(true);
-    setIsUpdating(true); // Set flag to prevent session check from running
-
+    setIsUpdating(true); // Prevent session checks
+    
     try {
-      // Update the user's password
+      // Update the user's password - this will only succeed once
       const { error: updateError } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (updateError) {
-        console.error('Update password error:', updateError);
-        setMessage({
-          type: 'error',
-          text: updateError.message || 'Unable to update password. Please try again.',
-        });
+        // Handle the case where password is same as old password
+        if (updateError.message.includes('New password should be different')) {
+          setMessage({
+            type: 'error',
+            text: 'New password must be different from your current password.',
+          });
+        } else {
+          console.error('Update password error:', updateError);
+          setMessage({
+            type: 'error',
+            text: updateError.message || 'Unable to update password. Please try again.',
+          });
+        }
         setLoading(false);
         setIsUpdating(false);
         return;
       }
+
+      // Mark password as updated to prevent any retries
+      setPasswordUpdated(true);
 
       setMessage({
         type: 'success',
         text: 'Password updated successfully! Redirecting to login...',
       });
 
-      // Wait a moment for user to see the success message
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Wait for user to see success message
+      await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Sign out the user after successful password update
-      await supabase.auth.signOut();
+      // Sign out to clear the recovery session
+      await supabase.auth.signOut({ scope: 'local' });
 
-      // Small delay to ensure sign out completes
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Small delay to ensure signout completes
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Force redirect to login with replace to prevent back navigation
+      // Redirect to login
       router.replace('/login');
 
     } catch (err) {
@@ -133,8 +149,9 @@ export default function UpdatePassword() {
 
   const handleCancel = async () => {
     setIsUpdating(true); // Prevent session check
+    setPasswordUpdated(true); // Prevent any retries
     // Sign out and go back to login
-    await supabase.auth.signOut();
+    await supabase.auth.signOut({ scope: 'local' });
     router.replace('/login');
   };
 

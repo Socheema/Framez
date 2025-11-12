@@ -25,13 +25,16 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [passwordUpdated, setPasswordUpdated] = useState(false); // Track if password was updated
   const router = useRouter();
   const params = useLocalSearchParams();
 
   useEffect(() => {
-    // Handle the magic link token from URL
-    handlePasswordReset();
-  }, []);
+    // Handle the magic link token from URL - only once
+    if (!passwordUpdated) {
+      handlePasswordReset();
+    }
+  }, []); // Empty dependency - run only once
 
   const handlePasswordReset = async () => {
     try {
@@ -103,6 +106,11 @@ export default function ResetPassword() {
   };
 
   const handleUpdatePassword = async () => {
+    // Prevent duplicate submissions
+    if (loading || passwordUpdated) {
+      return;
+    }
+
     setMessage({ type: '', text: '' });
 
     // Validation
@@ -120,6 +128,7 @@ export default function ResetPassword() {
     }
 
     setLoading(true);
+    
     try {
       // Update the password
       const { error } = await supabase.auth.updateUser({
@@ -127,24 +136,42 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        console.error('Update password error:', error);
-        setMessage({
-          type: 'error',
-          text: 'Unable to update password. Please try again.'
-        });
+        // Handle specific error cases
+        if (error.message.includes('New password should be different')) {
+          setMessage({
+            type: 'error',
+            text: 'New password must be different from your current password.',
+          });
+        } else {
+          console.error('Update password error:', error);
+          setMessage({
+            type: 'error',
+            text: error.message || 'Unable to update password. Please try again.'
+          });
+        }
         setLoading(false);
         return;
       }
 
-      // Sign out after successful password reset
-      await supabase.auth.signOut();
+      // Mark as updated to prevent retries
+      setPasswordUpdated(true);
 
       setMessage({
         type: 'success',
         text: 'Password updated successfully! Redirecting to login...',
       });
 
-      setTimeout(() => router.replace('/login'), 2000);
+      // Wait for user to see success message
+      await new Promise(resolve => setTimeout(resolve, 1500));
+
+      // Sign out after successful password reset
+      await supabase.auth.signOut({ scope: 'local' });
+
+      // Small delay to ensure signout completes
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // Redirect to login
+      router.replace('/login');
 
     } catch (err) {
       console.error('Reset password error:', err);
@@ -152,7 +179,6 @@ export default function ResetPassword() {
         type: 'error',
         text: 'An unexpected error occurred. Please try again.',
       });
-    } finally {
       setLoading(false);
     }
   };

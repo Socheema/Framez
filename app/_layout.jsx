@@ -28,14 +28,14 @@ export default function RootLayout() {
     const inPostDetail = segments[0] === 'postDetail'; // Post detail page
     const inWelcome = segments[0] === undefined || segments[0] === 'welcome' || segments[0] === 'index';
 
-    // If user is on updatePassword page, let that page handle its own navigation
-    // Don't interfere with password update flow
-    if (inUpdatePassword) {
+    // If user is on password reset pages, let those pages handle their own navigation
+    // Don't interfere with password reset/update flow
+    if (inUpdatePassword || inResetPassword) {
       return;
     }
 
     // If this is a password recovery session, redirect to updatePassword page
-    if (session && isPasswordRecovery && !inUpdatePassword) {
+    if (session && isPasswordRecovery && !inUpdatePassword && !inResetPassword) {
       router.replace('/updatePassword');
       return;
     }

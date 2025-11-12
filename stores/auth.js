@@ -223,6 +223,9 @@ export const useAuthStore = create((set, get) => ({
   // Clear password recovery flag
   clearPasswordRecovery: () => set({ isPasswordRecovery: false }),
 
+  // Set password recovery flag (used when user lands on password reset page)
+  setPasswordRecovery: (value) => set({ isPasswordRecovery: value }),
+
   // ✅ Update user profile
   updateProfile: async (updates) => {
     try {
