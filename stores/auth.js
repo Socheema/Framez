@@ -25,8 +25,8 @@ export const useAuthStore = create((set, get) => ({
       if (data?.session) {
         // Check if this is a password recovery session
         // Supabase sets a recovery token when user clicks the magic link
-        const isRecovery = data.session.user.aud === 'authenticated' && 
-                          (data.session.user.recovery_sent_at || 
+        const isRecovery = data.session.user.aud === 'authenticated' &&
+                          (data.session.user.recovery_sent_at ||
                            data.session.user.user_metadata?.is_recovery);
 
         // Fetch user profile

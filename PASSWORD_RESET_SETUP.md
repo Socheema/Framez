@@ -13,17 +13,17 @@ To make the password reset flow work properly, you need to configure the redirec
 2. **Configure Authentication Settings**
    - Click on "Authentication" in the left sidebar
    - Go to "URL Configuration"
-   
+
 3. **Add Redirect URLs**
    Add the following URLs to the "Redirect URLs" section:
-   
+
    **For Local Development:**
    ```
    http://localhost:8081/resetPassword
    http://localhost:19006/resetPassword
    http://127.0.0.1:8081/resetPassword
    ```
-   
+
    **For Production (replace with your actual domain):**
    ```
    https://yourdomain.com/resetPassword
@@ -137,8 +137,8 @@ When deploying to production:
 1. Update redirect URLs in Supabase dashboard with production domain
 2. Update `redirectTo` in `forgotPassword/index.jsx`:
    ```javascript
-   const redirectUrl = Platform.OS === 'web' 
-     ? `https://yourdomain.com/resetPassword` 
+   const redirectUrl = Platform.OS === 'web'
+     ? `https://yourdomain.com/resetPassword`
      : 'framez://resetPassword';
    ```
 3. Configure custom SMTP for professional email sending (optional)

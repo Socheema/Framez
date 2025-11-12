@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
@@ -61,7 +61,7 @@ export default function ResetPassword() {
         } else {
           // No valid tokens in URL, check existing session
           const { data: { session }, error } = await supabase.auth.getSession();
-          
+
           if (error || !session) {
             setMessage({
               type: 'error',
@@ -76,7 +76,7 @@ export default function ResetPassword() {
       } else {
         // For native apps, check the session
         const { data: { session }, error } = await supabase.auth.getSession();
-        
+
         if (error || !session) {
           setMessage({
             type: 'error',
@@ -126,9 +126,9 @@ export default function ResetPassword() {
 
       if (error) {
         console.error('Update password error:', error);
-        setMessage({ 
-          type: 'error', 
-          text: 'Unable to update password. Please try again.' 
+        setMessage({
+          type: 'error',
+          text: 'Unable to update password. Please try again.'
         });
         setLoading(false);
         return;
@@ -191,7 +191,7 @@ export default function ResetPassword() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={styles.container}
     >
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >

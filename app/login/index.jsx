@@ -1,7 +1,6 @@
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -10,6 +9,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Button from '../../components/Button';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 
 export default function Login() {
@@ -62,158 +65,143 @@ export default function Login() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.logo}>Framez</Text>
-        <Text style={styles.subtitle}>Sign in to continue</Text>
+    <ScreenWrapper bg="#fff">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <View style={styles.inner}>
+          <Text style={styles.logo}>Framez</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
 
-        {validationError ? (
-          <View style={styles.errorContainer}>
-            <Text style={styles.errorText}>{validationError}</Text>
-          </View>
-        ) : null}
+          {validationError ? (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{validationError}</Text>
+            </View>
+          ) : null}
 
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          autoComplete="email"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            setValidationError('');
-          }}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Email"
+            placeholderTextColor={theme.colors.textLight}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoComplete="email"
+            value={email}
+            onChangeText={(text) => {
+              setEmail(text);
+              setValidationError('');
+            }}
+          />
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          placeholderTextColor="#999"
-          secureTextEntry
-          autoCapitalize="none"
-          autoComplete="password"
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            setValidationError('');
-          }}
-        />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            placeholderTextColor={theme.colors.textLight}
+            secureTextEntry
+            autoCapitalize="none"
+            autoComplete="password"
+            value={password}
+            onChangeText={(text) => {
+              setPassword(text);
+              setValidationError('');
+            }}
+          />
 
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleLogin}
-          disabled={loading}
-        >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign In</Text>
-          )}
-        </TouchableOpacity>
+          <Button
+            title="Sign In"
+            onPress={handleLogin}
+            loading={loading}
+            buttonStyle={{ marginTop: hp(2) }}
+          />
 
-        <Link href="/forgotPassword" asChild>
-          <TouchableOpacity style={styles.forgotPasswordContainer}>
-            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-          </TouchableOpacity>
-        </Link>
-
-        <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Don't have an account? </Text>
-          <Link href="/signup" asChild>
-            <TouchableOpacity>
-              <Text style={styles.link}>Sign Up</Text>
+          <Link href="/forgotPassword" asChild>
+            <TouchableOpacity style={styles.forgotPasswordContainer}>
+              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
           </Link>
+
+          <View style={styles.linkContainer}>
+            <Text style={styles.linkText}>Don't have an account? </Text>
+            <Link href="/signup" asChild>
+              <TouchableOpacity>
+                <Text style={styles.link}>Sign Up</Text>
+              </TouchableOpacity>
+            </Link>
+          </View>
         </View>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: wp(5),
+    gap: hp(2),
   },
   logo: {
-    fontSize: 48,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: hp(4),
+    color: theme.colors.text,
+    fontWeight: theme.fonts.extrabold,
     textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: hp(1.8),
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 40,
+    marginBottom: hp(2),
   },
   input: {
     width: '100%',
-    backgroundColor: '#1a1a1a',
-    color: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#fff',
+    color: theme.colors.text,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.8),
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#0095f6',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    borderColor: theme.colors.gray,
+    fontSize: hp(2),
   },
   forgotPasswordContainer: {
     alignItems: 'center',
-    marginTop: 16,
+    marginTop: hp(1),
   },
   forgotPasswordText: {
-    color: '#0095f6',
-    fontSize: 14,
+    color: theme.colors.primaryDark,
+    fontSize: hp(1.8),
+    fontWeight: theme.fonts.semibold,
   },
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: hp(2),
   },
   linkText: {
-    color: '#999',
+    color: theme.colors.text,
+    fontSize: hp(1.6),
   },
   link: {
-    color: '#0095f6',
-    fontWeight: '600',
+    color: theme.colors.primaryDark,
+    fontWeight: theme.fonts.semibold,
+    fontSize: hp(1.6),
   },
   errorContainer: {
-    backgroundColor: '#ff444420',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: `${theme.colors.rose}20`,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    borderRadius: theme.radius.md,
     borderLeftWidth: 3,
-    borderLeftColor: '#ff4444',
+    borderLeftColor: theme.colors.rose,
   },
   errorText: {
-    color: '#ff4444',
+    color: theme.colors.rose,
     textAlign: 'center',
+    fontSize: hp(1.6),
   },
 });

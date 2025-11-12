@@ -1,15 +1,19 @@
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import Button from '../../components/Button';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 
 export default function Signup() {
@@ -74,189 +78,176 @@ export default function Signup() {
   };
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <View style={styles.inner}>
-        <Text style={styles.logo}>Framez</Text>
-        <Text style={styles.subtitle}>Create your account</Text>
-
-        {message.text ? (
-          <View
-            style={[
-              styles.messageContainer,
-              message.type === 'error' ? styles.errorContainer : styles.successContainer,
-            ]}
-          >
-            <Text
-              style={[
-                styles.messageText,
-                message.type === 'error' ? styles.errorText : styles.successText,
-              ]}
-            >
-              {message.text}
-            </Text>
-          </View>
-        ) : null}
-
-        <TextInput
-          style={styles.input}
-          placeholder="Full Name"
-          placeholderTextColor="#999"
-          value={name}
-          onChangeText={(text) => {
-            setName(text);
-            setMessage({ type: '', text: '' });
-          }}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Email"
-          placeholderTextColor="#999"
-          keyboardType="email-address"
-          autoCapitalize="none"
-          value={email}
-          onChangeText={(text) => {
-            setEmail(text);
-            setMessage({ type: '', text: '' });
-          }}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Password (min 6 characters)"
-          placeholderTextColor="#999"
-          secureTextEntry
-          value={password}
-          onChangeText={(text) => {
-            setPassword(text);
-            setMessage({ type: '', text: '' });
-          }}
-        />
-
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          placeholderTextColor="#999"
-          secureTextEntry
-          value={confirmPassword}
-          onChangeText={(text) => {
-            setConfirmPassword(text);
-            setMessage({ type: '', text: '' });
-          }}
-        />
-
-        <TouchableOpacity
-          style={[styles.button, loading && styles.buttonDisabled]}
-          onPress={handleSignup}
-          disabled={loading}
+    <ScreenWrapper bg="#fff">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
+      >
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {loading ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Sign Up</Text>
-          )}
-        </TouchableOpacity>
+          <View style={styles.inner}>
+            <Text style={styles.logo}>Framez</Text>
+            <Text style={styles.subtitle}>Create your account</Text>
 
-        <View style={styles.linkContainer}>
-          <Text style={styles.linkText}>Already have an account? </Text>
-          <Link href="/login" asChild>
-            <TouchableOpacity>
-              <Text style={styles.link}>Sign In</Text>
-            </TouchableOpacity>
-          </Link>
-        </View>
-      </View>
-    </KeyboardAvoidingView>
+            {message.text ? (
+              <View
+                style={[
+                  styles.messageContainer,
+                  message.type === 'error' ? styles.errorContainer : styles.successContainer,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.messageText,
+                    message.type === 'error' ? styles.errorText : styles.successText,
+                  ]}
+                >
+                  {message.text}
+                </Text>
+              </View>
+            ) : null}
+
+            <TextInput
+              style={styles.input}
+              placeholder="Full Name"
+              placeholderTextColor={theme.colors.textLight}
+              value={name}
+              onChangeText={(text) => {
+                setName(text);
+                setMessage({ type: '', text: '' });
+              }}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Email"
+              placeholderTextColor={theme.colors.textLight}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              value={email}
+              onChangeText={(text) => {
+                setEmail(text);
+                setMessage({ type: '', text: '' });
+              }}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Password (min 6 characters)"
+              placeholderTextColor={theme.colors.textLight}
+              secureTextEntry
+              value={password}
+              onChangeText={(text) => {
+                setPassword(text);
+                setMessage({ type: '', text: '' });
+              }}
+            />
+
+            <TextInput
+              style={styles.input}
+              placeholder="Confirm Password"
+              placeholderTextColor={theme.colors.textLight}
+              secureTextEntry
+              value={confirmPassword}
+              onChangeText={(text) => {
+                setConfirmPassword(text);
+                setMessage({ type: '', text: '' });
+              }}
+            />
+
+            <Button title="Sign Up" onPress={handleSignup} loading={loading} />
+
+            <View style={styles.linkContainer}>
+              <Text style={styles.linkText}>Already have an account? </Text>
+              <Link href="/login" asChild>
+                <TouchableOpacity>
+                  <Text style={styles.link}>Sign In</Text>
+                </TouchableOpacity>
+              </Link>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   inner: {
     flex: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: wp(5),
+    paddingVertical: hp(3),
+    gap: hp(1.5),
   },
   logo: {
-    fontSize: 48,
-    color: '#fff',
-    fontWeight: 'bold',
+    fontSize: hp(4),
+    color: theme.colors.text,
+    fontWeight: theme.fonts.extrabold,
     textAlign: 'center',
-    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 16,
-    color: '#999',
+    fontSize: hp(1.8),
+    color: theme.colors.text,
     textAlign: 'center',
-    marginBottom: 32,
+    marginBottom: hp(2),
   },
   input: {
     width: '100%',
-    backgroundColor: '#1a1a1a',
-    color: '#fff',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
+    backgroundColor: '#fff',
+    color: theme.colors.text,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.8),
+    borderRadius: theme.radius.xl,
     borderWidth: 1,
-    borderColor: '#333',
-  },
-  button: {
-    width: '100%',
-    backgroundColor: '#0095f6',
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: '#fff',
-    fontWeight: 'bold',
-    fontSize: 16,
+    borderColor: theme.colors.gray,
+    fontSize: hp(2),
   },
   linkContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: 24,
+    marginTop: hp(3),
   },
   linkText: {
-    color: '#999',
+    color: theme.colors.text,
+    fontSize: hp(1.6),
   },
   link: {
-    color: '#0095f6',
-    fontWeight: '600',
+    color: theme.colors.primaryDark,
+    fontWeight: theme.fonts.semibold,
+    fontSize: hp(1.6),
   },
   messageContainer: {
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 12,
+    paddingHorizontal: wp(4),
+    paddingVertical: hp(1.5),
+    borderRadius: theme.radius.md,
+    borderLeftWidth: 3,
   },
   errorContainer: {
-    backgroundColor: '#ff444420',
-    borderLeftWidth: 3,
-    borderLeftColor: '#ff4444',
+    backgroundColor: `${theme.colors.rose}20`,
+    borderLeftColor: theme.colors.rose,
   },
   successContainer: {
-    backgroundColor: '#44ff4440',
-    borderLeftWidth: 3,
-    borderLeftColor: '#00C851',
+    backgroundColor: `${theme.colors.primary}20`,
+    borderLeftColor: theme.colors.primary,
   },
   messageText: {
     textAlign: 'center',
-    fontSize: 14,
+    fontSize: hp(1.6),
   },
   errorText: {
-    color: '#ff4444',
+    color: theme.colors.rose,
   },
   successText: {
-    color: '#00C851',
+    color: theme.colors.primary,
   },
 });

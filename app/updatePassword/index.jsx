@@ -12,6 +12,10 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Button from '../../components/Button';
+import ScreenWrapper from '../../components/ScreenWrapper';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 import { supabase } from '../../utils/supabase';
 
 export default function UpdatePassword() {
@@ -36,7 +40,7 @@ export default function UpdatePassword() {
   const checkRecoverySession = async () => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         setMessage({
           type: 'error',
@@ -136,118 +140,117 @@ export default function UpdatePassword() {
 
   if (!isRecoverySession && !message.text) {
     return (
-      <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0095f6" />
-      </View>
+      <ScreenWrapper bg="#fff">
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={theme.colors.primary} />
+        </View>
+      </ScreenWrapper>
     );
   }
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
-    >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+    <ScreenWrapper bg="#fff">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <View style={styles.inner}>
-          <Ionicons name="lock-closed" size={64} color="#0095f6" style={styles.icon} />
-          
-          <Text style={styles.logo}>Set New Password</Text>
-          <Text style={styles.subtitle}>
-            Please enter your new password below
-          </Text>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.inner}>
+            <Ionicons name="lock-closed" size={hp(8)} color={theme.colors.primary} style={styles.icon} />
 
-          {message.text ? (
-            <View
-              style={[
-                styles.messageContainer,
-                message.type === 'error' ? styles.errorContainer : styles.successContainer,
-              ]}
-            >
-              <Text
+            <Text style={styles.logo}>Set New Password</Text>
+            <Text style={styles.subtitle}>
+              Please enter your new password below
+            </Text>
+
+            {message.text ? (
+              <View
                 style={[
-                  styles.messageText,
-                  message.type === 'error' ? styles.errorText : styles.successText,
+                  styles.messageContainer,
+                  message.type === 'error' ? styles.errorContainer : styles.successContainer,
                 ]}
               >
-                {message.text}
-              </Text>
+                <Text
+                  style={[
+                    styles.messageText,
+                    message.type === 'error' ? styles.errorText : styles.successText,
+                  ]}
+                >
+                  {message.text}
+                </Text>
+              </View>
+            ) : null}
+
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="New Password"
+                placeholderTextColor={theme.colors.textLight}
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                value={newPassword}
+                onChangeText={(text) => {
+                  setNewPassword(text);
+                  setMessage({ type: '', text: '' });
+                }}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={theme.colors.textLight}
+                />
+              </TouchableOpacity>
             </View>
-          ) : null}
 
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="New Password"
-              placeholderTextColor="#999"
-              secureTextEntry={!showPassword}
-              autoCapitalize="none"
-              value={newPassword}
-              onChangeText={(text) => {
-                setNewPassword(text);
-                setMessage({ type: '', text: '' });
-              }}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
-            >
-              <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={22}
-                color="#999"
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Confirm New Password"
+                placeholderTextColor={theme.colors.textLight}
+                secureTextEntry={!showConfirmPassword}
+                autoCapitalize="none"
+                value={confirmPassword}
+                onChangeText={(text) => {
+                  setConfirmPassword(text);
+                  setMessage({ type: '', text: '' });
+                }}
               />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={theme.colors.textLight}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Button
+              title="Update Password"
+              onPress={handleUpdatePassword}
+              loading={loading}
+            />
+
+            <TouchableOpacity
+              style={styles.cancelContainer}
+              onPress={handleCancel}
+            >
+              <Text style={styles.cancelText}>Cancel</Text>
             </TouchableOpacity>
           </View>
-
-          <View style={styles.passwordContainer}>
-            <TextInput
-              style={styles.passwordInput}
-              placeholder="Confirm New Password"
-              placeholderTextColor="#999"
-              secureTextEntry={!showConfirmPassword}
-              autoCapitalize="none"
-              value={confirmPassword}
-              onChangeText={(text) => {
-                setConfirmPassword(text);
-                setMessage({ type: '', text: '' });
-              }}
-            />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
-            >
-              <Ionicons
-                name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={22}
-                color="#999"
-              />
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleUpdatePassword}
-            disabled={loading}
-          >
-            {loading ? (
-              <ActivityIndicator color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Update Password</Text>
-            )}
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.cancelContainer}
-            onPress={handleCancel}
-          >
-            <Text style={styles.cancelText}>Cancel</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ScreenWrapper>
   );
 }
 

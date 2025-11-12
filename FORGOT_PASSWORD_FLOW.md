@@ -51,8 +51,8 @@ Complete password reset functionality integrated with Supabase authentication us
 const { error } = await supabase.auth.resetPasswordForEmail(
   email.toLowerCase(),
   {
-    redirectTo: Platform.OS === 'web' 
-      ? `${window.location.origin}/forgotPassword` 
+    redirectTo: Platform.OS === 'web'
+      ? `${window.location.origin}/forgotPassword`
       : 'framez://forgotPassword',
   }
 );
