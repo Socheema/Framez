@@ -25,6 +25,7 @@ export default function RootLayout() {
     const inResetPassword = segments[0] === 'resetPassword';
     const inSignup = segments[0] === 'signup';
     const inUserProfile = segments[0] === 'userProfile'; // User profile page
+    const inPostDetail = segments[0] === 'postDetail'; // Post detail page
     const inWelcome = segments[0] === undefined || segments[0] === 'welcome' || segments[0] === 'index';
 
     // If user is on updatePassword page, let that page handle its own navigation
@@ -40,12 +41,12 @@ export default function RootLayout() {
     }
 
     // 🔒 Redirect authenticated users to tabs (from public pages only)
-    if (session && !inAuthGroup && !inUserProfile && !isPasswordRecovery && !inLogin && !inForgotPassword && !inResetPassword && !inSignup) {
+    if (session && !inAuthGroup && !inUserProfile && !inPostDetail && !isPasswordRecovery && !inLogin && !inForgotPassword && !inResetPassword && !inSignup) {
       console.log('✅ User authenticated - redirecting to tabs');
       router.replace('/tabs');
     }
     // 🔒 Redirect unauthenticated users to login (from protected pages)
-    else if (!session && (inAuthGroup || inUserProfile)) {
+    else if (!session && (inAuthGroup || inUserProfile || inPostDetail)) {
       console.log('⚠️ User not authenticated - redirecting to login');
       router.replace('/login');
     }

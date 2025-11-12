@@ -98,7 +98,7 @@ export default function UserProfile() {
   const loadUserProfile = async () => {
     try {
       setLoading(true);
-      
+
       if (!id) {
         console.error('No user ID provided');
         return;
@@ -150,7 +150,8 @@ export default function UserProfile() {
   };
 
   const handlePostPress = (post) => {
-    Alert.alert('Post', post.caption || 'No caption');
+    // Navigate to post detail page
+    router.push(`/postDetail/${post.id}`);
   };
 
   const onRefresh = () => {

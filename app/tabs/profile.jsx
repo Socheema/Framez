@@ -285,8 +285,8 @@ export default function Profile() {
   };
 
   const handlePostPress = (post) => {
-    // Navigate to post detail or open modal
-    Alert.alert('Post', post.caption || 'No caption');
+    // Navigate to post detail page
+    router.push(`/postDetail/${post.id}`);
   };
 
   const onRefresh = () => {
