@@ -51,9 +51,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 console.log('✅ Supabase environment variables validated successfully');
 
-console.log('✅ Supabase environment variables validated successfully');
-
-// 🛡️ Safe client creation with Realtime support
+// 🛡️ Safe client creation with Realtime support and automatic reconnection
 console.log('=== CREATING SUPABASE CLIENT ===');
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -68,9 +66,60 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
       eventsPerSecond: 10,
     },
   },
+  global: {
+    headers: {
+      'x-client-info': 'framez-social-app',
+    },
+  },
+  db: {
+    schema: 'public',
+  },
 })
 
 console.log('✅ Supabase client created successfully');
+
+// 🔄 Enhanced realtime connection management with auto-reconnect
+let realtimeReconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const RECONNECT_DELAY = 3000;
+
+// Monitor realtime connection status
+if (Platform.OS !== "web") {
+  const monitorRealtimeConnection = () => {
+    const channels = supabase.getChannels();
+    
+    channels.forEach(channel => {
+      channel.on('system', {}, (payload) => {
+        if (payload.status === 'CHANNEL_ERROR' || payload.status === 'DISCONNECTED') {
+          console.warn('🔴 Realtime connection issue:', payload);
+          
+          // Attempt to reconnect
+          if (realtimeReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+            realtimeReconnectAttempts++;
+            console.log(`🔄 Attempting to reconnect realtime (${realtimeReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
+            
+            setTimeout(() => {
+              channel.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                  console.log('✅ Realtime reconnected successfully');
+                  realtimeReconnectAttempts = 0;
+                }
+              });
+            }, RECONNECT_DELAY * realtimeReconnectAttempts);
+          } else {
+            console.error('❌ Max reconnection attempts reached for realtime');
+          }
+        } else if (payload.status === 'SUBSCRIBED') {
+          console.log('✅ Realtime channel subscribed:', channel.topic);
+          realtimeReconnectAttempts = 0;
+        }
+      });
+    });
+  };
+
+  // Monitor periodically
+  setInterval(monitorRealtimeConnection, 10000); // Check every 10 seconds
+}
 
 // 🕒 Handle app state for session refresh
 if (Platform.OS !== "web") {
