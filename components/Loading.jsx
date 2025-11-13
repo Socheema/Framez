@@ -1,7 +1,6 @@
-import { View, Text, ActivityIndicator } from "react-native";
 import React from "react";
+import { ActivityIndicator, View } from "react-native";
 import { theme } from "../constants/theme";
-
 
 const Loading = ({ size = "large", color = theme.colors.primary }) => {
   return (
@@ -11,4 +10,4 @@ const Loading = ({ size = "large", color = theme.colors.primary }) => {
   );
 };
 
-export default Loading;
+export default React.memo(Loading);

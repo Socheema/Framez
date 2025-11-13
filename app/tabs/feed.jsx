@@ -2,11 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import Button from '../../components/Button';
-import { theme } from '../../constants/theme';
-import { hp, wp } from '../../helpers/common';
-
-import { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
   Dimensions,
@@ -18,10 +14,13 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
+import Button from '../../components/Button';
 import CommentsModal from '../../components/CommentsModal';
 import ConversationModal from '../../components/ConversationModal';
 import FloatingMessageButton from '../../components/FloatingMessageButton';
 import MessageModal from '../../components/MessageModal';
+import { theme } from '../../constants/theme';
+import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
@@ -36,14 +35,16 @@ import { subscribeToMultipleTables } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 
-// Avatar component with fallback to initials
-const Avatar = ({ userName, avatarUrl, size = 32 }) => {
-  const initials = userName
-    ?.split(' ')
-    .map(n => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2) || '?';
+// Avatar component with fallback to initials - Memoized for performance
+const Avatar = React.memo(({ userName, avatarUrl, size = 32 }) => {
+  const initials = useMemo(() => {
+    return userName
+      ?.split(' ')
+      .map(n => n[0])
+      .join('')
+      .toUpperCase()
+      .slice(0, 2) || '?';
+  }, [userName]);
 
   return (
     <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
@@ -52,16 +53,17 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
           source={{ uri: avatarUrl }}
           style={{ width: size, height: size, borderRadius: size / 2 }}
           contentFit="cover"
+          cachePolicy="memory-disk"
         />
       ) : (
         <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
       )}
     </View>
   );
-};
+});
 
-// Skeleton loading component
-const SkeletonLoader = () => (
+// Skeleton loading component - Memoized
+const SkeletonLoader = React.memo(() => (
   <View style={styles.skeletonContainer}>
     {[1, 2, 3].map((item) => (
       <View key={item} style={styles.skeletonCard}>
@@ -78,10 +80,10 @@ const SkeletonLoader = () => (
       </View>
     ))}
   </View>
-);
+));
 
-// Empty state component
-const EmptyState = ({ onRefresh }) => (
+// Empty state component - Memoized
+const EmptyState = React.memo(({ onRefresh }) => (
   <View style={styles.emptyContainer}>
     <Text style={styles.emptyIcon}>📸</Text>
     <Text style={styles.emptyTitle}>No Posts Yet</Text>
@@ -92,10 +94,10 @@ const EmptyState = ({ onRefresh }) => (
       <Text style={styles.emptyButtonText}>Refresh</Text>
     </TouchableOpacity>
   </View>
-);
+));
 
-// Post card component
-const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress }) => {
+// Post card component - Memoized for better performance
+const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, onUserPress }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
@@ -112,7 +114,7 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
     }
   };
 
-  const handleLikePress = async () => {
+  const handleLikePress = useCallback(async () => {
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please login to like posts');
       return;
@@ -147,29 +149,29 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
     } finally {
       setIsLiking(false);
     }
-  };
+  }, [currentUserId, isLiking, isLiked, likesCount, post.id]);
 
-  const handleCommentPress = () => {
+  const handleCommentPress = useCallback(() => {
     if (!currentUserId) {
       Alert.alert('Login Required', 'Please login to comment');
       return;
     }
     onCommentPress(post);
-  };
+  }, [currentUserId, onCommentPress, post]);
 
-  const handleSharePress = () => {
+  const handleSharePress = useCallback(() => {
     Alert.alert('Share', 'Share functionality coming soon!');
-  };
+  }, []);
 
-  const handleSavePress = () => {
+  const handleSavePress = useCallback(() => {
     setIsSaved(!isSaved);
     Alert.alert(
       isSaved ? 'Removed from saved' : 'Saved',
       isSaved ? 'Post removed from your saved collection' : 'Post saved to your collection'
     );
-  };
+  }, [isSaved]);
 
-  const handleMorePress = () => {
+  const handleMorePress = useCallback(() => {
     Alert.alert(
       'Post Options',
       'Choose an action',
@@ -178,15 +180,15 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
         { text: 'Cancel', style: 'cancel' },
       ]
     );
-  };
+  }, []);
 
-  const formatTime = (timestamp) => {
+  const formattedTime = useMemo(() => {
     try {
-      return formatDistanceToNow(new Date(timestamp), { addSuffix: true });
+      return formatDistanceToNow(new Date(post.created_at), { addSuffix: true });
     } catch (error) {
       return 'recently';
     }
-  };
+  }, [post.created_at]);
 
   return (
     <View style={styles.postCard}>
@@ -200,7 +202,7 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
           <Avatar userName={post.user_name} avatarUrl={post.avatar_url} size={32} />
           <View style={styles.postHeaderText}>
             <Text style={styles.username}>{post.user_name || 'Anonymous'}</Text>
-            <Text style={styles.timestamp}>{formatTime(post.created_at)}</Text>
+            <Text style={styles.timestamp}>{formattedTime}</Text>
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
@@ -285,7 +287,15 @@ const PostCard = ({ post, currentUserId, onCommentPress, onRefresh, onUserPress 
       )}
     </View>
   );
-};
+}, (prevProps, nextProps) => {
+  // Custom comparison for better memoization
+  return (
+    prevProps.post.id === nextProps.post.id &&
+    prevProps.post.likes_count === nextProps.post.likes_count &&
+    prevProps.post.comments_count === nextProps.post.comments_count &&
+    prevProps.currentUserId === nextProps.currentUserId
+  );
+});
 
 // Main Feed Component
 export default function Feed() {
@@ -306,8 +316,8 @@ export default function Feed() {
     }
   }, [session]);
 
-  // Fetch posts from Supabase
-  const fetchPosts = async (showRefreshing = false) => {
+  // Fetch posts from Supabase - Memoized
+  const fetchPosts = useCallback(async (showRefreshing = false) => {
     try {
       if (showRefreshing) {
         setRefreshing(true);
@@ -327,7 +337,7 @@ export default function Feed() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [initialLoad, setPosts, setLoading]);
 
   // Initial load only - NO useFocusEffect
   useEffect(() => {
@@ -489,21 +499,21 @@ export default function Feed() {
     fetchPosts(true);
   }, []);
 
-  // Handle comment press
-  const handleCommentPress = (post) => {
+  // Handle comment press - Memoized
+  const handleCommentPress = useCallback((post) => {
     setSelectedPost(post);
     setCommentsModalVisible(true);
-  };
+  }, []);
 
-  const handleCloseComments = () => {
+  const handleCloseComments = useCallback(() => {
     setCommentsModalVisible(false);
     setSelectedPost(null);
     // Refresh posts to get updated comment count
     fetchPosts(true);
-  };
+  }, [fetchPosts]);
 
-  // Handle navigation to user profile
-  const handleUserPress = (userId) => {
+  // Handle navigation to user profile - Memoized
+  const handleUserPress = useCallback((userId) => {
     if (!userId) return;
 
     // Don't navigate if clicking on own profile
@@ -513,10 +523,10 @@ export default function Feed() {
     }
 
     router.push(`/userProfile/${userId}`);
-  };
+  }, [user?.id, router]);
 
-  // Render post item with safety check
-  const renderPost = ({ item }) => {
+  // Render post item with safety check - Memoized
+  const renderPost = useCallback(({ item }) => {
     if (!item || !item.id) {
       console.warn('Skipping invalid post:', item);
       return null;
@@ -530,16 +540,21 @@ export default function Feed() {
         onUserPress={handleUserPress}
       />
     );
-  };
+  }, [user?.id, handleCommentPress, fetchPosts, handleUserPress]);
 
-  // Key extractor with safety check
-  const keyExtractor = (item) => {
+  // Key extractor with safety check - Memoized
+  const keyExtractor = useCallback((item) => {
     if (!item || !item.id) {
       console.warn('Invalid item in posts array:', item);
       return `invalid-${Math.random()}`;
     }
     return item.id.toString();
-  };
+  }, []);
+
+  // Filtered posts - Memoized
+  const filteredPosts = useMemo(() => {
+    return Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
+  }, [posts]);
 
   // Error state
   if (error && !refreshing && posts.length === 0) {
@@ -577,12 +592,12 @@ export default function Feed() {
         <SkeletonLoader />
       ) : (
         <FlatList
-          data={Array.isArray(posts) ? posts.filter(post => post && post.id) : []}
+          data={filteredPosts}
           renderItem={renderPost}
           keyExtractor={keyExtractor}
           contentContainerStyle={[
             styles.listContent,
-            (Array.isArray(posts) ? posts.length : 0) === 0 && styles.listContentEmpty,
+            filteredPosts.length === 0 && styles.listContentEmpty,
           ]}
           refreshControl={
             <RefreshControl
@@ -594,6 +609,10 @@ export default function Feed() {
           }
           ListEmptyComponent={<EmptyState onRefresh={onRefresh} />}
           showsVerticalScrollIndicator={false}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={5}
+          updateCellsBatchingPeriod={50}
+          windowSize={10}
         />
       )}
 

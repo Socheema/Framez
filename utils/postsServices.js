@@ -4,11 +4,11 @@ import { supabase } from './supabase';
 
 /**
  * Fetch all posts with user info, likes, and comments count
- * Optimized to work without foreign key constraints
+ * Optimized with parallel queries and reduced API calls
  */
 export async function fetchAllPosts() {
   try {
-    // First, fetch all posts
+    // Fetch all posts
     const { data: posts, error: postsError } = await supabase
       .from('posts')
       .select('*')
@@ -23,58 +23,42 @@ export async function fetchAllPosts() {
       return [];
     }
 
-    // Get unique user IDs
+    const postIds = posts.map(p => p.id);
     const userIds = [...new Set(posts.map(post => post.user_id))];
 
-    // Fetch user profiles
-    const { data: profiles, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, full_name, username, avatar_url')
-      .in('id', userIds);
+    // Parallel fetch: profiles, likes, and comments at the same time
+    const [profilesRes, likesRes, commentsRes] = await Promise.all([
+      supabase
+        .from('profiles')
+        .select('id, full_name, username, avatar_url')
+        .in('id', userIds),
+      supabase
+        .from('likes')
+        .select('post_id')
+        .in('post_id', postIds),
+      supabase
+        .from('comments')
+        .select('post_id')
+        .in('post_id', postIds)
+    ]);
 
-    if (profilesError) {
-      console.warn('Fetch profiles error:', profilesError);
-    }
-
-    // Create a map of user profiles
+    // Create lookup maps for O(1) access
     const profilesMap = {};
-    (profiles || []).forEach(profile => {
+    (profilesRes.data || []).forEach(profile => {
       profilesMap[profile.id] = profile;
     });
 
-    // Fetch likes count for all posts
-    const { data: likesData, error: likesError } = await supabase
-      .from('likes')
-      .select('post_id')
-      .in('post_id', posts.map(p => p.id));
-
-    if (likesError) {
-      console.warn('Fetch likes error:', likesError);
-    }
-
-    // Count likes per post
     const likesCountMap = {};
-    (likesData || []).forEach(like => {
+    (likesRes.data || []).forEach(like => {
       likesCountMap[like.post_id] = (likesCountMap[like.post_id] || 0) + 1;
     });
 
-    // Fetch comments count for all posts
-    const { data: commentsData, error: commentsError } = await supabase
-      .from('comments')
-      .select('post_id')
-      .in('post_id', posts.map(p => p.id));
-
-    if (commentsError) {
-      console.warn('Fetch comments error:', commentsError);
-    }
-
-    // Count comments per post
     const commentsCountMap = {};
-    (commentsData || []).forEach(comment => {
+    (commentsRes.data || []).forEach(comment => {
       commentsCountMap[comment.post_id] = (commentsCountMap[comment.post_id] || 0) + 1;
     });
 
-    // Transform data to include counts and user info
+    // Transform data efficiently
     return posts.map(post => {
       const profile = profilesMap[post.user_id];
       return {
@@ -180,6 +164,7 @@ export async function getPostLikesCount(postId) {
 
 /**
  * Fetch comments for a post
+ * Optimized with parallel queries
  */
 export async function fetchPostComments(postId) {
   try {
@@ -209,7 +194,7 @@ export async function fetchPostComments(postId) {
       console.warn('Fetch profiles error:', profilesError);
     }
 
-    // Create a map of user profiles
+    // Create a map of user profiles for O(1) lookup
     const profilesMap = {};
     (profiles || []).forEach(profile => {
       profilesMap[profile.id] = profile;

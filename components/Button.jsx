@@ -1,4 +1,5 @@
-import {View, StyleSheet, Text, TouchableOpacity } from "react-native";
+import React from "react";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { theme } from "../constants/theme";
 import { hp } from "../helpers/common";
 import Loading from "./Loading";
@@ -11,7 +12,7 @@ const Button = ({
   loading = false,
   hasShadow = true,
 }) => {
-  const shadowStyle = {
+  const shadowStyle = hasShadow && {
     shadowColor: theme.colors.dark,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.2,
@@ -30,14 +31,14 @@ const Button = ({
   return (
     <TouchableOpacity
       onPress={onPress}
-      style={[styles.button, buttonStyle, hasShadow && shadowStyle]}
+      style={[styles.button, buttonStyle, shadowStyle]}
     >
-      <Text style={[styles.text, textStyle]}>{title || "Button"}</Text>
+      <Text style={[styles.text, textStyle]}>{title}</Text>
     </TouchableOpacity>
   );
 };
 
-export default Button;
+export default React.memo(Button);
 
 const styles = StyleSheet.create({
   button: {
