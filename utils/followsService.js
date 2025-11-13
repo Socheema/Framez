@@ -1,5 +1,5 @@
+import { clearCache, executeWithCache, executeWithRetry, withTimeout } from './networkUtils';
 import { supabase } from './supabase';
-import { executeWithRetry, executeWithCache, clearCache, withTimeout } from './networkUtils';
 
 /**
  * Follow a user

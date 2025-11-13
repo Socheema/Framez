@@ -1,5 +1,5 @@
+import { clearCache, executeWithCache, executeWithRetry, withTimeout } from './networkUtils';
 import { supabase } from './supabase';
-import { executeWithRetry, executeWithCache, clearCache, withTimeout } from './networkUtils';
 
 /**
  * Get or create conversation between two users
@@ -42,11 +42,11 @@ export async function getOrCreateConversation(userId1, userId2) {
       );
 
       if (result.error) throw result.error;
-      
+
       // Clear conversations cache since we created a new one
       clearCache(`conversations_${participantOne}`);
       clearCache(`conversations_${participantTwo}`);
-      
+
       return result.data;
     });
 
@@ -174,9 +174,9 @@ export async function getUserConversations(userId) {
                 .order('created_at', { ascending: false }),
               15000
             );
-            
+
             if (result.error) throw result.error;
-            
+
             // Group by conversation_id and take first (latest)
             const grouped = {};
             (result.data || []).forEach(msg => {
@@ -195,12 +195,12 @@ export async function getUserConversations(userId) {
                 .select('conversation_id, sender_id')
                 .in('conversation_id', conversationIds)
                 .eq('read_status', false)
-                .neq('sender_id', userId),
+                .not('sender_id', 'eq', userId),
               15000
             );
 
             if (result.error) throw result.error;
-            
+
             // Count by conversation_id
             const counts = {};
             (result.data || []).forEach(msg => {
@@ -269,7 +269,7 @@ export async function getUnreadCount(userId) {
               .select('*', { count: 'exact', head: true })
               .in('conversation_id', conversationIds)
               .eq('read_status', false)
-              .neq('sender_id', userId),
+              .not('sender_id', 'eq', userId),
             10000
           );
 
@@ -299,7 +299,7 @@ export async function markConversationAsRead(conversationId, userId) {
           .update({ read_status: true, updated_at: new Date().toISOString() })
           .eq('conversation_id', conversationId)
           .eq('read_status', false)
-          .neq('sender_id', userId),
+          .not('sender_id', 'eq', userId),
         10000
       );
 
@@ -308,7 +308,7 @@ export async function markConversationAsRead(conversationId, userId) {
 
     // Clear unread count cache
     clearCache(`unread_count_${userId}`);
-    
+
     return true;
   } catch (error) {
     console.error('Error marking conversation as read:', error);

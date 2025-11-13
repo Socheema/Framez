@@ -1,5 +1,5 @@
+import { clearCache, executeWithCache, executeWithRetry, withTimeout } from './networkUtils';
 import { supabase } from './supabase';
-import { executeWithRetry, executeWithCache, clearCache, withTimeout } from './networkUtils';
 
 // ==================== POSTS ====================
 
@@ -47,7 +47,7 @@ export async function fetchAllPosts() {
             if (result.error) throw result.error;
             return result;
           }).catch(() => ({ data: [] })),
-          
+
           executeWithRetry(async () => {
             const result = await withTimeout(
               supabase
@@ -59,7 +59,7 @@ export async function fetchAllPosts() {
             if (result.error) throw result.error;
             return result;
           }).catch(() => ({ data: [] })),
-          
+
           executeWithRetry(async () => {
             const result = await withTimeout(
               supabase

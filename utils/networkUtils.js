@@ -39,7 +39,7 @@ export async function retryWithBackoff(fn, options = {}) {
 
       // Log retry attempt
       console.log(`Attempt ${attempt + 1} failed. Retrying in ${delay}ms...`);
-      
+
       if (onRetry) {
         onRetry(attempt + 1, delay, error);
       }
@@ -64,12 +64,12 @@ export async function retryWithBackoff(fn, options = {}) {
 export async function executeWithRetry(queryFn, options = {}) {
   return retryWithBackoff(async () => {
     const result = await queryFn();
-    
+
     // Check for Supabase error
     if (result.error) {
       throw result.error;
     }
-    
+
     return result;
   }, options);
 }
@@ -88,14 +88,14 @@ const queryCache = new Map();
  */
 export async function executeWithCache(key, queryFn, ttl = 5 * 60 * 1000) {
   const cached = queryCache.get(key);
-  
+
   if (cached && Date.now() - cached.timestamp < ttl) {
     console.log(`Cache hit for key: ${key}`);
     return cached.data;
   }
 
   const data = await queryFn();
-  
+
   queryCache.set(key, {
     data,
     timestamp: Date.now(),
@@ -124,16 +124,16 @@ export function clearCache(key = null) {
  */
 export async function batchRequests(requests, batchSize = 5) {
   const results = [];
-  
+
   for (let i = 0; i < requests.length; i += batchSize) {
     const batch = requests.slice(i, i + batchSize);
     const batchResults = await Promise.allSettled(batch.map(fn => fn()));
-    
-    results.push(...batchResults.map(result => 
+
+    results.push(...batchResults.map(result =>
       result.status === 'fulfilled' ? result.value : null
     ));
   }
-  
+
   return results;
 }
 
@@ -147,7 +147,7 @@ export async function batchRequests(requests, batchSize = 5) {
 export function withTimeout(promise, timeout = 15000, errorMessage = 'Request timeout') {
   return Promise.race([
     promise,
-    new Promise((_, reject) => 
+    new Promise((_, reject) =>
       setTimeout(() => reject(new Error(errorMessage)), timeout)
     ),
   ]);
@@ -177,6 +177,6 @@ export function getErrorMessage(error) {
   if (isNetworkError(error)) {
     return 'Network connection issue. Please check your internet connection and try again.';
   }
-  
+
   return error.message || 'An unexpected error occurred';
 }

@@ -222,7 +222,7 @@ export const useMessageStore = create((set, get) => ({
         .from('messages')
         .update({ read_status: true })
         .eq('conversation_id', conversationId)
-        .neq('sender_id', currentUserId)
+        .not('sender_id', 'eq', currentUserId)
         .eq('read_status', false);
 
       // Update local state

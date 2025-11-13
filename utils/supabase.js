@@ -87,17 +87,17 @@ const RECONNECT_DELAY = 3000;
 if (Platform.OS !== "web") {
   const monitorRealtimeConnection = () => {
     const channels = supabase.getChannels();
-    
+
     channels.forEach(channel => {
       channel.on('system', {}, (payload) => {
         if (payload.status === 'CHANNEL_ERROR' || payload.status === 'DISCONNECTED') {
           console.warn('🔴 Realtime connection issue:', payload);
-          
+
           // Attempt to reconnect
           if (realtimeReconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
             realtimeReconnectAttempts++;
             console.log(`🔄 Attempting to reconnect realtime (${realtimeReconnectAttempts}/${MAX_RECONNECT_ATTEMPTS})...`);
-            
+
             setTimeout(() => {
               channel.subscribe((status) => {
                 if (status === 'SUBSCRIBED') {
