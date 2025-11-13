@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "framez-social",
+    "name": "Framez Social",
     "slug": "framez-social",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -8,9 +8,12 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.framezsocial.app"
     },
     "android": {
+      "package": "framezsocial.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E41E3F"
       },
@@ -26,6 +29,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9d0378d7-fd7e-471e-9c07-d95670d24c87"
+      }
     }
   }
 }

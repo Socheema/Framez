@@ -1,6 +1,7 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import ErrorBoundary from '../components/ErrorBoundary';
 import { theme } from '../constants/theme';
 import { useAuthStore } from '../stores/auth';
 
@@ -11,7 +12,13 @@ export default function RootLayout() {
 
   // Load authentication on app start
   useEffect(() => {
-    loadAuth();
+    try {
+      loadAuth();
+    } catch (error) {
+      console.error('Error loading auth:', error);
+      // Auth will remain in unloaded state, causing the loading spinner to disappear
+      // User can still try to navigate manually
+    }
   }, []);
 
   // Handle navigation based on auth state
@@ -61,5 +68,9 @@ export default function RootLayout() {
     );
   }
 
-  return <Slot />;
+  return (
+    <ErrorBoundary>
+      <Slot />
+    </ErrorBoundary>
+  );
 }

@@ -1,24 +1,45 @@
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { createClient } from "@supabase/supabase-js"
+import Constants from "expo-constants"
 import { AppState, Platform } from "react-native"
 import "react-native-url-polyfill/auto"
 
 // 🧩 Supabase Configuration from Environment Variables
 // Get your credentials from: Supabase Dashboard → Settings → API
 // Add them to .env file (see .env.example for template)
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
+
+// In production builds, environment variables come from app.config.js (Constants.expoConfig.extra)
+// In development, they come from process.env
+const getEnvVar = (key, configKey) => {
+  // Try Constants.expoConfig.extra first (production builds)
+  if (Constants.expoConfig?.extra?.[configKey]) {
+    return Constants.expoConfig.extra[configKey];
+  }
+  // Fall back to process.env (development)
+  return process.env[key];
+};
+
+const supabaseUrl = getEnvVar('EXPO_PUBLIC_SUPABASE_URL', 'supabaseUrl');
+const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'supabaseAnonKey');
 
 // ✅ Validate environment variables are loaded
 if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error(
+  const errorMessage =
     '❌ Missing Supabase environment variables!\n\n' +
-    'Please ensure you have:\n' +
-    '1. Created a .env file in the project root\n' +
-    '2. Added EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY\n' +
-    '3. Restarted your dev server: npx expo start --clear\n\n' +
-    'See .env.example for instructions.'
-  )
+    'Supabase URL: ' + (supabaseUrl ? '✅ Found' : '❌ Missing') + '\n' +
+    'Supabase Key: ' + (supabaseAnonKey ? '✅ Found' : '❌ Missing') + '\n\n' +
+    'For development:\n' +
+    '1. Create a .env file in the project root\n' +
+    '2. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY\n' +
+    '3. Restart your dev server: npx expo start --clear\n\n' +
+    'For production builds:\n' +
+    '1. Ensure app.config.js has environment variables in extra section\n' +
+    '2. Run: npx expo prebuild --clean\n' +
+    '3. Rebuild your app\n\n' +
+    'See .env.example for instructions.';
+
+  console.error(errorMessage);
+  throw new Error(errorMessage);
 }
 
 // 🛡️ Safe client creation with Realtime support

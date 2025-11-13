@@ -127,7 +127,7 @@ Platform.OS === "web"     // Returns true on web browsers
   </View>
 </SafeAreaView>
 ```
-**Why not used:** 
+**Why not used:**
 - ScreenWrapper already handles safe areas
 - Simple padding is more predictable
 - Less component nesting

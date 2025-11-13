@@ -1,12 +1,12 @@
-import { View, Text, StyleSheet, TouchableOpacity, Platform } from "react-native";
-import ScreenWrapper from "../../components/ScreenWrapper";
-import { StatusBar } from "expo-status-bar";
-import { wp, hp } from "../../helpers/common";
-import WelcomeImage from "../../assets/images/welcome.png";
 import { Image } from "expo-image";
-import { theme } from "../../constants/theme";
-import Button from "../../components/Button";
 import { useRouter } from "expo-router";
+import { StatusBar } from "expo-status-bar";
+import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import WelcomeImage from "../../assets/images/welcome.png";
+import Button from "../../components/Button";
+import ScreenWrapper from "../../components/ScreenWrapper";
+import { theme } from "../../constants/theme";
+import { hp, wp } from "../../helpers/common";
 
 const Welcome = () => {
   const router = useRouter();
