@@ -55,7 +55,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 **Missing permissions:**
 - READ_EXTERNAL_STORAGE
-- WRITE_EXTERNAL_STORAGE  
+- WRITE_EXTERNAL_STORAGE
 - CAMERA
 - READ_MEDIA_IMAGES (Android 13+)
 
@@ -505,7 +505,7 @@ Constants.expoConfig.extra: { supabaseUrl: "...", supabaseAnonKey: "..." }
 
 ---
 
-**Date:** November 13, 2025  
-**Version:** 1.0.0  
-**Package:** com.framezsocial.app  
+**Date:** November 13, 2025
+**Version:** 1.0.0
+**Package:** com.framezsocial.app
 **Status:** 🔧 FIXES IMPLEMENTED - READY FOR REBUILD

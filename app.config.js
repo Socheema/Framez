@@ -40,8 +40,8 @@ module.exports = ({ config }) => {
         projectId: "9d0378d7-fd7e-471e-9c07-d95670d24c87"
       },
       // Embed environment variables for production builds
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseUrl:process.env.EXPO_PUBLIC_SUPABASE_URL,
+      supabaseAnonKey:process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     }
   };
 };
