@@ -5,16 +5,21 @@ import { View } from 'react-native'
 import { useAuthStore } from '../stores/auth'
 import { supabase } from '../utils/supabase'
 
+console.log('=== APP INDEX.JSX LOADED ===');
+
 export default function Index() {
   const { session, isLoaded, loadAuth } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
+    console.log('=== INDEX USEEFFECT: Preventing splash auto-hide ===');
     SplashScreen.preventAutoHideAsync()
+    console.log('=== INDEX USEEFFECT: Loading auth ===');
     loadAuth()
 
     // Set up auth state listener - but handle password recovery specially
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
+      console.log('=== AUTH STATE CHANGE ===', event);
       // Don't redirect during password recovery events
       // Let the updatePassword/resetPassword pages handle navigation
       if (event === 'PASSWORD_RECOVERY') {
@@ -41,10 +46,18 @@ export default function Index() {
   }, [])
 
   useEffect(() => {
-    if (isLoaded) SplashScreen.hideAsync()
+    console.log('=== INDEX USEEFFECT: isLoaded changed ===', isLoaded);
+    if (isLoaded) {
+      console.log('=== INDEX USEEFFECT: Hiding splash screen ===');
+      SplashScreen.hideAsync()
+    }
   }, [isLoaded])
 
-  if (!isLoaded) return <View />
+  if (!isLoaded) {
+    console.log('=== INDEX RENDER: Auth not loaded yet, showing empty view ===');
+    return <View />
+  }
 
+  console.log('=== INDEX RENDER: Auth loaded, redirecting. Session:', !!session);
   return <Redirect href={session ? '/tabs' : '/welcome'} />
 }

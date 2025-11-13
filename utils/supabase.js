@@ -13,11 +13,22 @@ import "react-native-url-polyfill/auto"
 const getEnvVar = (key, configKey) => {
   // Try Constants.expoConfig.extra first (production builds)
   if (Constants.expoConfig?.extra?.[configKey]) {
+    console.log(`✅ Found ${configKey} in Constants.expoConfig.extra`);
     return Constants.expoConfig.extra[configKey];
   }
   // Fall back to process.env (development)
-  return process.env[key];
+  const envValue = process.env[key];
+  if (envValue) {
+    console.log(`✅ Found ${key} in process.env`);
+    return envValue;
+  }
+  console.error(`❌ Missing ${key} / ${configKey}`);
+  return null;
 };
+
+console.log('=== SUPABASE INITIALIZATION STARTING ===');
+console.log('Platform:', Platform.OS);
+console.log('Constants.expoConfig.extra:', Constants.expoConfig?.extra);
 
 const supabaseUrl = getEnvVar('EXPO_PUBLIC_SUPABASE_URL', 'supabaseUrl');
 const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'supabaseAnonKey');
@@ -25,24 +36,30 @@ const supabaseAnonKey = getEnvVar('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'supabaseAnon
 // ✅ Validate environment variables are loaded
 if (!supabaseUrl || !supabaseAnonKey) {
   const errorMessage =
-    '❌ Missing Supabase environment variables!\n\n' +
+    '❌ CRITICAL: Missing Supabase environment variables!\n\n' +
     'Supabase URL: ' + (supabaseUrl ? '✅ Found' : '❌ Missing') + '\n' +
     'Supabase Key: ' + (supabaseAnonKey ? '✅ Found' : '❌ Missing') + '\n\n' +
+    'Constants.expoConfig.extra: ' + JSON.stringify(Constants.expoConfig?.extra || {}, null, 2) + '\n\n' +
     'For development:\n' +
     '1. Create a .env file in the project root\n' +
     '2. Add EXPO_PUBLIC_SUPABASE_URL and EXPO_PUBLIC_SUPABASE_ANON_KEY\n' +
     '3. Restart your dev server: npx expo start --clear\n\n' +
     'For production builds:\n' +
-    '1. Ensure app.config.js has environment variables in extra section\n' +
+    '1. Ensure app.json has environment variables in extra section\n' +
     '2. Run: npx expo prebuild --clean\n' +
-    '3. Rebuild your app\n\n' +
+    '3. Rebuild your app with: eas build -p android --profile production\n\n' +
     'See .env.example for instructions.';
 
   console.error(errorMessage);
   throw new Error(errorMessage);
 }
 
+console.log('✅ Supabase environment variables validated successfully');
+
+console.log('✅ Supabase environment variables validated successfully');
+
 // 🛡️ Safe client creation with Realtime support
+console.log('=== CREATING SUPABASE CLIENT ===');
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     // ✅ Only attach AsyncStorage on native platforms
@@ -57,6 +74,8 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     },
   },
 })
+
+console.log('✅ Supabase client created successfully');
 
 // 🕒 Handle app state for session refresh
 if (Platform.OS !== "web") {

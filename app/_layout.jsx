@@ -5,6 +5,8 @@ import ErrorBoundary from '../components/ErrorBoundary';
 import { theme } from '../constants/theme';
 import { useAuthStore } from '../stores/auth';
 
+console.log('=== APP _LAYOUT.JSX LOADED ===');
+
 export default function RootLayout() {
   const { session, isLoaded, loadAuth, isPasswordRecovery } = useAuthStore();
   const router = useRouter();
@@ -12,10 +14,11 @@ export default function RootLayout() {
 
   // Load authentication on app start
   useEffect(() => {
+    console.log('=== LAYOUT USEEFFECT: Loading auth on app start ===');
     try {
       loadAuth();
     } catch (error) {
-      console.error('Error loading auth:', error);
+      console.error('❌ LAYOUT: Error loading auth:', error);
       // Auth will remain in unloaded state, causing the loading spinner to disappear
       // User can still try to navigate manually
     }

@@ -13,8 +13,12 @@ class ErrorBoundary extends React.Component {
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to console
-    console.error('ErrorBoundary caught an error:', error, errorInfo);
+    // Log the error to console (works in production too)
+    console.error('🚨 APP CRASH - ErrorBoundary caught an error');
+    console.error('Error:', error);
+    console.error('Error Info:', errorInfo);
+    console.error('Error Message:', error?.message);
+    console.error('Error Stack:', error?.stack);
 
     // Update state with error details
     this.setState({
@@ -25,18 +29,18 @@ class ErrorBoundary extends React.Component {
 
   render() {
     if (this.state.hasError) {
-      // Render fallback UI
+      // Render fallback UI (show in both dev and production)
       return (
         <View style={styles.container}>
           <View style={styles.errorBox}>
-            <Text style={styles.title}>Something went wrong</Text>
+            <Text style={styles.title}>⚠️ App Initialization Error</Text>
             <Text style={styles.message}>
-              The app encountered an error and couldn't continue.
+              The app encountered an error during startup.
             </Text>
 
-            {__DEV__ && this.state.error && (
+            {this.state.error && (
               <ScrollView style={styles.detailsContainer}>
-                <Text style={styles.detailsTitle}>Error Details (Dev Mode):</Text>
+                <Text style={styles.detailsTitle}>Error Details:</Text>
                 <Text style={styles.errorText}>
                   {this.state.error.toString()}
                 </Text>
@@ -47,6 +51,10 @@ class ErrorBoundary extends React.Component {
                 )}
               </ScrollView>
             )}
+
+            <Text style={styles.helpText}>
+              Please restart the app. If the problem persists, contact support.
+            </Text>
           </View>
         </View>
       );
@@ -110,6 +118,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: '#4a5568',
     fontFamily: 'monospace',
+  },
+  helpText: {
+    marginTop: 15,
+    fontSize: 14,
+    color: '#718096',
+    textAlign: 'center',
   },
 });
 

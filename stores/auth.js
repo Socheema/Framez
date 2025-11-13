@@ -12,17 +12,20 @@ export const useAuthStore = create((set, get) => ({
 
   // ✅ Load saved session when app starts
   loadAuth: async () => {
+    console.log('=== AUTH STORE: loadAuth called ===');
     try {
       // Try to get session from Supabase (this checks AsyncStorage too)
+      console.log('=== AUTH STORE: Getting session from Supabase ===');
       const { data, error } = await supabase.auth.getSession();
 
       if (error) {
-        console.error('Session load error:', error);
+        console.error('❌ AUTH STORE: Session load error:', error);
         set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
         return;
       }
 
       if (data?.session) {
+        console.log('✅ AUTH STORE: Session found, fetching profile');
         // Check if this is a password recovery session
         // Supabase sets a recovery token when user clicks the magic link
         const isRecovery = data.session.user.aud === 'authenticated' &&
@@ -36,6 +39,7 @@ export const useAuthStore = create((set, get) => ({
           .eq('id', data.session.user.id)
           .single();
 
+        console.log('✅ AUTH STORE: Auth loaded successfully with session');
         set({
           session: data.session,
           user: data.session.user,
@@ -44,10 +48,11 @@ export const useAuthStore = create((set, get) => ({
           isPasswordRecovery: isRecovery || false,
         });
       } else {
+        console.log('ℹ️ AUTH STORE: No session found, user not logged in');
         set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
       }
     } catch (error) {
-      console.error('Error loading auth:', error);
+      console.error('❌ AUTH STORE: Error loading auth:', error);
       set({ session: null, user: null, profile: null, isLoaded: true, isPasswordRecovery: false });
     }
   },
