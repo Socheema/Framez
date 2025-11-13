@@ -4,15 +4,15 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
-  Dimensions,
-  FlatList,
-  Platform,
-  RefreshControl,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
+    Alert,
+    Dimensions,
+    FlatList,
+    Platform,
+    RefreshControl,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import Button from '../../components/Button';
 import CommentsModal from '../../components/CommentsModal';
@@ -25,11 +25,11 @@ import { useAuthStore } from '../../stores/auth';
 import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
 import {
-  fetchAllPosts,
-  getPostLikesCount,
-  hasUserLikedPost,
-  likePost,
-  unlikePost,
+    fetchAllPosts,
+    getPostLikesCount,
+    hasUserLikedPost,
+    likePost,
+    unlikePost,
 } from '../../utils/postsServices';
 import { subscribeToMultipleTables } from '../../utils/supabase';
 
