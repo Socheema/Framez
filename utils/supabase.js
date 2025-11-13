@@ -4,12 +4,7 @@ import Constants from "expo-constants"
 import { AppState, Platform } from "react-native"
 import "react-native-url-polyfill/auto"
 
-// 🧩 Supabase Configuration from Environment Variables
-// Get your credentials from: Supabase Dashboard → Settings → API
-// Add them to .env file (see .env.example for template)
 
-// In production builds, environment variables come from app.config.js (Constants.expoConfig.extra)
-// In development, they come from process.env
 const getEnvVar = (key, configKey) => {
   // Try Constants.expoConfig.extra first (production builds)
   if (Constants.expoConfig?.extra?.[configKey]) {
