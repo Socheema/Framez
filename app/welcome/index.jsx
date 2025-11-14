@@ -2,6 +2,7 @@ import { Image } from "expo-image";
 import { useRouter } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import WelcomeImage from "../../assets/images/welcome.png";
 import Button from "../../components/Button";
 import ScreenWrapper from "../../components/ScreenWrapper";
@@ -10,6 +11,7 @@ import { hp, wp } from "../../helpers/common";
 
 const Welcome = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   return (
     <ScreenWrapper bg={"#fff"}>
       <StatusBar style="dark" />
@@ -32,7 +34,12 @@ const Welcome = () => {
       </View>
 
       {/* footer */}
-      <View style={styles.footer}>
+      <View style={[
+        styles.footer,
+        Platform.OS === 'android' && {
+          paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 32,
+        }
+      ]}>
         <Button
           title="Getting Started"
           buttonStyle={{ marginHorizontal: wp(3) }}
@@ -89,8 +96,6 @@ const styles = StyleSheet.create({
   footer: {
     gap: 30,
     width: "100%",
-    // Add extra bottom padding on Android to clear navigation bar
-    paddingBottom: Platform.OS === "android" ? 32 : 0,
   },
   buttonTextContainer: {
     flexDirection: "row",
