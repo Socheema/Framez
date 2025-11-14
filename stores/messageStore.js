@@ -241,15 +241,15 @@ export const useMessageStore = create((set, get) => ({
       // Update read status for messages not sent by current user
       await supabase
         .from('messages')
-        .update({ read_status: true })
+        .update({ is_read: true })
         .eq('conversation_id', conversationId)
         .not('sender_id', 'eq', currentUserId)
-        .eq('read_status', false);
+        .eq('is_read', false);
 
       // Update local state
       set((state) => ({
         messages: state.messages.map((msg) =>
-          msg.sender_id !== currentUserId ? { ...msg, read_status: true } : msg
+          msg.sender_id !== currentUserId ? { ...msg, is_read: true } : msg
         ),
       }));
 

@@ -194,7 +194,7 @@ export async function getUserConversations(userId) {
                 .from('messages')
                 .select('conversation_id, sender_id')
                 .in('conversation_id', conversationIds)
-                .eq('read_status', false)
+                .eq('is_read', false)
                 .not('sender_id', 'eq', userId),
               15000
             );
@@ -268,7 +268,7 @@ export async function getUnreadCount(userId) {
               .from('messages')
               .select('*', { count: 'exact', head: true })
               .in('conversation_id', conversationIds)
-              .eq('read_status', false)
+              .eq('is_read', false)
               .not('sender_id', 'eq', userId),
             10000
           );
@@ -296,9 +296,9 @@ export async function markConversationAsRead(conversationId, userId) {
       const result = await withTimeout(
         supabase
           .from('messages')
-          .update({ read_status: true, updated_at: new Date().toISOString() })
+          .update({ is_read: true, updated_at: new Date().toISOString() })
           .eq('conversation_id', conversationId)
-          .eq('read_status', false)
+          .eq('is_read', false)
           .not('sender_id', 'eq', userId),
         10000
       );
