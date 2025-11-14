@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { hp, wp } from '../helpers/common';
 import { useAuthStore } from '../stores/auth';
@@ -77,10 +79,12 @@ const MessageBubble = ({ message, isOwnMessage, showAvatar, otherUser }) => {
 
 export default function MessageModal({ visible, onClose }) {
   const { user } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const messageStore = useMessageStore();
   const { currentConversation, messages, loading } = messageStore;
 
   const [messageText, setMessageText] = useState('');
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
   const flatListRef = useRef(null);
 
   const otherUser = currentConversation?.otherUser;
@@ -99,6 +103,23 @@ export default function MessageModal({ visible, onClose }) {
       };
     }
   }, [visible, currentConversation?.id, user?.id]);
+
+  // Monitor keyboard for Android to position input above navigation bar
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const keyboardWillShow = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      });
+      const keyboardWillHide = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+      });
+
+      return () => {
+        keyboardWillShow.remove();
+        keyboardWillHide.remove();
+      };
+    }
+  }, []);
 
   // Scroll to bottom when messages change
   useEffect(() => {
@@ -188,7 +209,13 @@ export default function MessageModal({ visible, onClose }) {
         />
 
         {/* Input */}
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          Platform.OS === 'android' && {
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 10,
+            marginBottom: keyboardHeight > 0 ? 10 : 0,
+          }
+        ]}>
           <View style={styles.inputWrapper}>
             <TextInput
               style={styles.input}

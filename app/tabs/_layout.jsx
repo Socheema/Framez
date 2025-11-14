@@ -160,9 +160,9 @@ const styles = StyleSheet.create({
   tabBarItem: {
     paddingTop: 8,
   },
-  // Android-specific icon positioning adjustment
+  // Android-specific icon positioning adjustment (move up 20px)
   iconContainerAndroid: {
-    transform: [{ translateY: -8 }],
+    transform: [{ translateY: -20 }],
   },
   // Floating button wrapper
   floatingButtonWrapper: {

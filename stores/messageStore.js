@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import {
-  getMessages,
-  getOrCreateConversation,
-  getUserConversations,
-  sendMessage as sendMessageService,
+    getMessages,
+    getOrCreateConversation,
+    getUserConversations,
+    sendMessage as sendMessageService,
 } from '../utils/messagesService';
 import { supabase } from '../utils/supabase';
 

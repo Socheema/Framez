@@ -3,6 +3,7 @@ import {
   ActivityIndicator,
   FlatList,
   Image,
+  Keyboard,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { hp, wp } from '../helpers/common';
 import { useAuthStore } from '../stores/auth';
@@ -68,16 +70,35 @@ const CommentItem = ({ comment }) => {
 
 export default function CommentsModal({ visible, onClose, postId, initialCount = 0 }) {
   const { user, profile } = useAuthStore();
+  const insets = useSafeAreaInsets();
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
 
   useEffect(() => {
     if (visible && postId) {
       loadComments();
     }
   }, [visible, postId]);
+
+  // Monitor keyboard for Android to position input above navigation bar
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const keyboardWillShow = Keyboard.addListener('keyboardDidShow', (e) => {
+        setKeyboardHeight(e.endCoordinates.height);
+      });
+      const keyboardWillHide = Keyboard.addListener('keyboardDidHide', () => {
+        setKeyboardHeight(0);
+      });
+
+      return () => {
+        keyboardWillShow.remove();
+        keyboardWillHide.remove();
+      };
+    }
+  }, []);
 
   const loadComments = async () => {
     setLoading(true);
@@ -149,7 +170,13 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
         )}
 
         {/* Comment Input */}
-        <View style={styles.inputContainer}>
+        <View style={[
+          styles.inputContainer,
+          Platform.OS === 'android' && {
+            paddingBottom: insets.bottom > 0 ? insets.bottom + 10 : 10,
+            marginBottom: keyboardHeight > 0 ? 10 : 0,
+          }
+        ]}>
           <Avatar userName={profile?.user_name || user?.email} avatarUrl={profile?.avatar_url} size={32} />
           <TextInput
             style={styles.input}

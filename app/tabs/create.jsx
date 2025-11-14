@@ -76,6 +76,11 @@ export default function CreatePost() {
     try {
       console.log('Starting upload for:', imageUri);
 
+      // Validate imageUri
+      if (!imageUri) {
+        throw new Error('No image URI provided');
+      }
+
       // Get file extension
       const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
@@ -95,6 +100,12 @@ export default function CreatePost() {
         const base64 = await FileSystem.readAsStringAsync(imageUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
+        
+        // Validate base64 string
+        if (!base64) {
+          throw new Error('Failed to read image as base64');
+        }
+        
         // Convert base64 to array buffer
         uploadData = decode(base64);
       }
@@ -132,7 +143,7 @@ export default function CreatePost() {
 
   // Handle post creation
   const handlePost = async () => {
-    if (!selectedImage) {
+    if (!selectedImage || !selectedImage.uri) {
       Alert.alert('Missing Image', 'Please select an image to post.');
       return;
     }
@@ -154,7 +165,11 @@ export default function CreatePost() {
 
       console.log('Creating post for user:', currentUser.id);
 
-      // Upload image first
+      // Upload image first - validate selectedImage.uri exists
+      if (!selectedImage.uri) {
+        throw new Error('Image URI is missing');
+      }
+      
       console.log('Uploading image...');
       const imageUrl = await uploadImage(selectedImage.uri);
       console.log('Image uploaded:', imageUrl);
@@ -339,7 +354,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: wp(4),
-    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
+    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3) + 16, // +16px for Android accessibility
     paddingBottom: hp(1.5),
     borderBottomWidth: 1,
     borderBottomColor: theme.colors.gray,
