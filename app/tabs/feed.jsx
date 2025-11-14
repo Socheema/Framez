@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     Alert,
     Dimensions,
@@ -102,6 +102,10 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  
+  // Use refs to track current state in the callback to avoid stale closures
+  const isLikedRef = useRef(false);
+  const isLikingRef = useRef(false);
 
   useEffect(() => {
     checkLikeStatus();
@@ -111,6 +115,7 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
     if (currentUserId && post.id) {
       const liked = await hasUserLikedPost(currentUserId, post.id);
       setIsLiked(liked);
+      isLikedRef.current = liked;
     }
   };
 
@@ -120,36 +125,45 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
       return;
     }
 
-    if (isLiking) return;
+    // Prevent rapid clicks using ref to check current state
+    if (isLikingRef.current) return;
 
+    isLikingRef.current = true;
     setIsLiking(true);
-    const previousLiked = isLiked;
-    const previousCount = likesCount;
 
-    // Optimistic update
-    setIsLiked(!isLiked);
-    setLikesCount(prev => isLiked ? prev - 1 : prev + 1);
+    const previousLiked = isLikedRef.current;
+    const previousCount = likesCount;
+    const newLikedState = !previousLiked;
+
+    // Optimistic update using refs
+    isLikedRef.current = newLikedState;
+    setIsLiked(newLikedState);
+    setLikesCount(prev => previousLiked ? prev - 1 : prev + 1);
 
     try {
-      if (isLiked) {
+      if (previousLiked) {
+        // Unlike
         await unlikePost(currentUserId, post.id);
       } else {
+        // Like
         await likePost(currentUserId, post.id);
       }
 
-      // Refresh count from server
+      // Refresh count from server to ensure sync
       const newCount = await getPostLikesCount(post.id);
       setLikesCount(newCount);
     } catch (error) {
       console.error('Error toggling like:', error);
       // Revert on error
+      isLikedRef.current = previousLiked;
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
       Alert.alert('Error', 'Failed to update like. Please try again.');
     } finally {
+      isLikingRef.current = false;
       setIsLiking(false);
     }
-  }, [currentUserId, isLiking, isLiked, likesCount, post.id]);
+  }, [currentUserId, post.id, likesCount]);
 
   const handleCommentPress = useCallback(() => {
     if (!currentUserId) {

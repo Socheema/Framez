@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -90,6 +90,10 @@ export default function PostDetail() {
   const [showLikesModal, setShowLikesModal] = useState(false);
   const [newComment, setNewComment] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  
+  // Use refs to track current state and prevent rapid clicks
+  const isLikedRef = useRef(false);
+  const isLikingRef = useRef(false);
 
   useEffect(() => {
     if (id) {
@@ -294,7 +298,9 @@ export default function PostDetail() {
         .eq('post_id', id);
 
       if (error) throw error;
-      setIsLiked(data && data.length > 0);
+      const liked = data && data.length > 0;
+      setIsLiked(liked);
+      isLikedRef.current = liked;
     } catch (error) {
       console.error('Error checking like status:', error);
     }
@@ -306,8 +312,16 @@ export default function PostDetail() {
       return;
     }
 
+    // Prevent rapid clicks using ref to check current state
+    if (isLikingRef.current) return;
+
+    isLikingRef.current = true;
+    const previousLiked = isLikedRef.current;
+    const previousCount = likesCount;
+    const newLikedState = !previousLiked;
+
     try {
-      if (isLiked) {
+      if (previousLiked) {
         // Unlike - remove the like
         const { error } = await supabase
           .from('likes')
@@ -317,7 +331,8 @@ export default function PostDetail() {
 
         if (error) throw error;
 
-        // Update state optimistically
+        // Update state to reflect unlike
+        isLikedRef.current = false;
         setIsLiked(false);
         setLikesCount(prev => Math.max(0, prev - 1));
 
@@ -337,14 +352,17 @@ export default function PostDetail() {
           if (error.code === '23505') {
             // Like already exists, just update UI to reflect reality
             console.log('Like already exists, updating UI state');
+            isLikedRef.current = true;
             setIsLiked(true);
             await loadLikedUsers();
+            isLikingRef.current = false;
             return;
           }
           throw error;
         }
 
-        // Update state optimistically
+        // Update state to reflect like
+        isLikedRef.current = true;
         setIsLiked(true);
         setLikesCount(prev => prev + 1);
 
@@ -362,8 +380,13 @@ export default function PostDetail() {
       console.error('Error toggling like:', error);
       Alert.alert('Error', 'Failed to update like. Please try again.');
       // Revert UI state on error
+      isLikedRef.current = previousLiked;
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
       await checkLikeStatus();
       await loadLikedUsers();
+    } finally {
+      isLikingRef.current = false;
     }
   };
 
