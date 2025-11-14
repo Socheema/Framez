@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
+import { useAuthStore } from '../../stores/auth';
 import { supabase } from '../../utils/supabase';
 
 export default function ResetPassword() {
@@ -25,18 +26,26 @@ export default function ResetPassword() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isValidSession, setIsValidSession] = useState(false);
   const [checking, setChecking] = useState(true);
-  const [passwordUpdated, setPasswordUpdated] = useState(false); // Track if password was updated
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { setPasswordRecovery } = useAuthStore();
+  
+  // Use refs to prevent race conditions and duplicate processing
+  const passwordUpdatedRef = useRef(false);
+  const isProcessingRef = useRef(false);
+  const sessionVerifiedRef = useRef(false);
 
   useEffect(() => {
-    // Handle the magic link token from URL - only once
-    if (!passwordUpdated) {
+    // Handle the magic link token from URL - only once on mount
+    // Using ref to prevent double-execution in strict mode
+    if (!sessionVerifiedRef.current) {
+      sessionVerifiedRef.current = true;
       handlePasswordReset();
     }
   }, []); // Empty dependency - run only once
 
   const handlePasswordReset = useCallback(async () => {
+    console.log('[ResetPassword] Starting session verification...');
     try {
       // Check for hash parameters (Supabase magic link)
       if (Platform.OS === 'web') {
@@ -44,6 +53,8 @@ export default function ResetPassword() {
         const accessToken = hashParams.get('access_token');
         const refreshToken = hashParams.get('refresh_token');
         const type = hashParams.get('type');
+
+        console.log('[ResetPassword] Web platform - checking hash params. Type:', type);
 
         if (accessToken && type === 'recovery') {
           // Set the session using the tokens from the URL
@@ -53,55 +64,65 @@ export default function ResetPassword() {
           });
 
           if (error) {
-            console.error('Session error:', error);
+            console.error('[ResetPassword] Session setup error:', error);
             setMessage({
               type: 'error',
               text: 'Invalid or expired reset link. Please request a new one.',
             });
             setIsValidSession(false);
-            // Use setTimeout with proper navigation
+            // Clear URL query params to prevent re-processing
             setTimeout(() => {
-              router.replace('/(auth)/forgotPassword');
-            }, 2000);
+              router.replace('/resetPassword');
+            }, 500);
           } else {
+            console.log('[ResetPassword] Session established successfully');
             setIsValidSession(true);
+            // Mark as password recovery to prevent global redirects
+            setPasswordRecovery(true);
           }
         } else {
           // No valid tokens in URL, check existing session
           const { data: { session }, error } = await supabase.auth.getSession();
 
           if (error || !session) {
+            console.log('[ResetPassword] No valid session found');
             setMessage({
               type: 'error',
               text: 'Invalid or expired reset link. Please request a new password reset.',
             });
             setIsValidSession(false);
             setTimeout(() => {
-              router.replace('/(auth)/forgotPassword');
-            }, 2000);
+              router.replace('/forgotPassword');
+            }, 1500);
           } else {
+            console.log('[ResetPassword] Session found');
             setIsValidSession(true);
+            setPasswordRecovery(true);
           }
         }
       } else {
         // For native apps, check the session
+        console.log('[ResetPassword] Native platform - checking session');
         const { data: { session }, error } = await supabase.auth.getSession();
 
         if (error || !session) {
+          console.log('[ResetPassword] No valid session for native app');
           setMessage({
             type: 'error',
             text: 'Invalid or expired reset link. Please request a new password reset.',
           });
           setIsValidSession(false);
           setTimeout(() => {
-            router.replace('/(auth)/forgotPassword');
-          }, 2000);
+            router.replace('/forgotPassword');
+          }, 1500);
         } else {
+          console.log('[ResetPassword] Session valid for native app');
           setIsValidSession(true);
+          setPasswordRecovery(true);
         }
       }
     } catch (err) {
-      console.error('Password reset handling error:', err);
+      console.error('[ResetPassword] Error during session verification:', err);
       setMessage({
         type: 'error',
         text: 'Unable to verify reset link. Please try again.',
@@ -110,34 +131,37 @@ export default function ResetPassword() {
     } finally {
       setChecking(false);
     }
-  }, [router]);
+  }, [router, setPasswordRecovery]);
 
   const handleCancel = useCallback(() => {
-    // Clear form state
+    console.log('[ResetPassword] Cancel button pressed');
+    
+    // Clear all state
     setNewPassword('');
     setConfirmPassword('');
     setMessage({ type: '', text: '' });
+    setPasswordRecovery(false);
     
-    // Navigate back to forgot password or login
-    // Use router.back() first, fallback to replace if needed
-    try {
-      if (router.canGoBack?.()) {
-        router.back();
-      } else {
-        router.replace('/(auth)/login');
-      }
-    } catch (error) {
-      console.error('Navigation error:', error);
-      router.replace('/(auth)/login');
-    }
-  }, [router]);
+    // Simple direct navigation - no history checking
+    // This prevents bouncing and redirect loops
+    router.replace('/login');
+  }, [router, setPasswordRecovery]);
 
   const handleUpdatePassword = useCallback(async () => {
-    // Prevent duplicate submissions
-    if (loading || passwordUpdated) {
+    // Prevent concurrent/duplicate submissions using ref
+    if (isProcessingRef.current || passwordUpdatedRef.current) {
+      console.log('[ResetPassword] Already processing or completed - ignoring duplicate call');
       return;
     }
 
+    // Prevent duplicate submissions based on UI state
+    if (loading) {
+      console.log('[ResetPassword] Already loading - ignoring');
+      return;
+    }
+
+    console.log('[ResetPassword] Starting password update flow');
+    
     setMessage({ type: '', text: '' });
 
     // Validation
@@ -154,15 +178,21 @@ export default function ResetPassword() {
       return;
     }
 
+    // Mark as processing to prevent race conditions
+    isProcessingRef.current = true;
     setLoading(true);
 
     try {
-      // Update the password
+      console.log('[ResetPassword] Calling supabase.auth.updateUser()');
+      
+      // Single API call to update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
       });
 
       if (error) {
+        console.error('[ResetPassword] updateUser error:', error);
+        
         // Handle specific error cases
         if (error.message.includes('New password should be different')) {
           setMessage({
@@ -170,62 +200,77 @@ export default function ResetPassword() {
             text: 'New password must be different from your current password.',
           });
         } else {
-          console.error('Update password error:', error);
           setMessage({
             type: 'error',
             text: error.message || 'Unable to update password. Please try again.'
           });
         }
+        
+        // Reset processing flag on error to allow retry
+        isProcessingRef.current = false;
         setLoading(false);
         return;
       }
 
-      // Mark as updated to prevent retries
-      setPasswordUpdated(true);
+      console.log('[ResetPassword] Password updated successfully');
+      
+      // Mark as permanently completed to prevent any retries
+      passwordUpdatedRef.current = true;
 
+      // Show success message
       setMessage({
         type: 'success',
         text: 'Password updated successfully! Redirecting to login...',
       });
 
       // Wait for user to see success message
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      console.log('[ResetPassword] Signing out user');
+      
+      // Clear recovery flag immediately to prevent global listener conflicts
+      setPasswordRecovery(false);
+
+      // Wait a bit for recovery flag to propagate
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       try {
-        // Sign out after successful password reset
-        await supabase.auth.signOut({ scope: 'local' });
-      } catch (signoutError) {
-        console.error('Signout error:', signoutError);
-        // Continue with navigation even if signout fails
+        // Sign out to clear the recovery session
+        const { error: signoutError } = await supabase.auth.signOut({ scope: 'local' });
+        if (signoutError) {
+          console.warn('[ResetPassword] Signout warning (continuing anyway):', signoutError);
+        } else {
+          console.log('[ResetPassword] Signout successful');
+        }
+      } catch (signoutErr) {
+        console.warn('[ResetPassword] Signout exception (continuing anyway):', signoutErr);
       }
 
       // Small delay to ensure signout completes
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 200));
 
+      console.log('[ResetPassword] Redirecting to login');
+      
       // Clear the form
       setNewPassword('');
       setConfirmPassword('');
       setMessage({ type: '', text: '' });
 
-      // Navigate to login with explicit path using replace
-      // Use the auth group if it exists, otherwise fallback to root
-      try {
-        router.replace('/(auth)/login');
-      } catch (navError) {
-        console.error('Navigation to login error:', navError);
-        // Fallback navigation
-        router.replace('/login');
-      }
+      // Direct navigation - use /login (not /(auth)/login which might not exist in route structure)
+      // Replacing prevents back navigation to reset page
+      router.replace('/login');
 
     } catch (err) {
-      console.error('Reset password error:', err);
+      console.error('[ResetPassword] Unexpected error during password update:', err);
       setMessage({
         type: 'error',
         text: 'An unexpected error occurred. Please try again.',
       });
+      // Reset processing flag on error
+      isProcessingRef.current = false;
       setLoading(false);
     }
-  }, [loading, passwordUpdated, newPassword, confirmPassword, router]);
+  }, [loading, router, setPasswordRecovery]);
 
   if (checking) {
     return (
@@ -249,23 +294,18 @@ export default function ResetPassword() {
           </Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.replace('/(auth)/forgotPassword')}
+            onPress={() => {
+              setPasswordRecovery(false);
+              router.replace('/forgotPassword');
+            }}
           >
             <Text style={styles.buttonText}>Request New Link</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => {
-              try {
-                if (router.canGoBack?.()) {
-                  router.back();
-                } else {
-                  router.replace('/(auth)/login');
-                }
-              } catch (error) {
-                console.error('Navigation error:', error);
-                router.replace('/(auth)/login');
-              }
+              setPasswordRecovery(false);
+              router.replace('/login');
             }}
           >
             <Text style={styles.cancelButtonText}>Back to Login</Text>
