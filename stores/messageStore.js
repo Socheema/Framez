@@ -14,6 +14,7 @@ export const useMessageStore = create((set, get) => ({
   messages: [],
   unreadCount: 0,
   loading: false,
+  isSending: false,
   error: null,
   conversationModalVisible: false,
   messageModalVisible: false,
@@ -71,10 +72,28 @@ export const useMessageStore = create((set, get) => ({
    * Send a message
    */
   sendMessage: async (conversationId, senderId, text) => {
-    if (!text || !text.trim()) return null;
+    // Guard: prevent concurrent sends
+    const { isSending } = get();
+    if (isSending) {
+      console.warn('[MessageStore] Already sending a message, ignoring duplicate call');
+      return null;
+    }
+
+    if (!text || !text.trim()) {
+      console.warn('[MessageStore] Empty message text, ignoring');
+      return null;
+    }
+
+    set({ isSending: true, error: null });
 
     try {
       const message = await sendMessageService(conversationId, senderId, text);
+
+      if (!message) {
+        console.error('[MessageStore] sendMessageService returned null');
+        set({ isSending: false });
+        return null;
+      }
 
       // Optimistically add message to local state
       set((state) => ({
@@ -92,9 +111,11 @@ export const useMessageStore = create((set, get) => ({
 
       return message;
     } catch (error) {
-      console.error('Error sending message:', error);
+      console.error('[MessageStore] Error sending message:', error);
       set({ error: error.message });
       return null;
+    } finally {
+      set({ isSending: false });
     }
   },
 
@@ -313,6 +334,7 @@ export const useMessageStore = create((set, get) => ({
       messages: [],
       unreadCount: 0,
       loading: false,
+      isSending: false,
       error: null,
       conversationModalVisible: false,
       messageModalVisible: false,

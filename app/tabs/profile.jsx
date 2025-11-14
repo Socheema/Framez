@@ -259,10 +259,19 @@ export default function Profile() {
         uploadData = blob;
       } else {
         // For native: use FileSystem + base64-arraybuffer
-        const base64 = await FileSystem.readAsStringAsync(imageUri, {
-          encoding: FileSystem.EncodingType.Base64,
-        });
-        uploadData = decode(base64);
+        // Use 'base64' string literal instead of FileSystem.EncodingType.Base64
+        // which may be undefined in production builds
+        try {
+          const base64 = await FileSystem.readAsStringAsync(imageUri, {
+            encoding: 'base64',
+          });
+          uploadData = decode(base64);
+        } catch (fileError) {
+          console.error('FileSystem read error, falling back to fetch blob:', fileError);
+          // Fallback to fetch if FileSystem fails
+          const response = await fetch(imageUri);
+          uploadData = await response.blob();
+        }
       }
 
       // Delete old avatar if exists

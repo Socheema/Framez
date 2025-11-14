@@ -29,7 +29,7 @@ export default function ResetPassword() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { setPasswordRecovery } = useAuthStore();
-  
+
   // Use refs to prevent race conditions and duplicate processing
   const passwordUpdatedRef = useRef(false);
   const isProcessingRef = useRef(false);
@@ -135,13 +135,13 @@ export default function ResetPassword() {
 
   const handleCancel = useCallback(() => {
     console.log('[ResetPassword] Cancel button pressed');
-    
+
     // Clear all state
     setNewPassword('');
     setConfirmPassword('');
     setMessage({ type: '', text: '' });
     setPasswordRecovery(false);
-    
+
     // Simple direct navigation - no history checking
     // This prevents bouncing and redirect loops
     router.replace('/login');
@@ -161,7 +161,7 @@ export default function ResetPassword() {
     }
 
     console.log('[ResetPassword] Starting password update flow');
-    
+
     setMessage({ type: '', text: '' });
 
     // Validation
@@ -184,7 +184,7 @@ export default function ResetPassword() {
 
     try {
       console.log('[ResetPassword] Calling supabase.auth.updateUser()');
-      
+
       // Single API call to update password
       const { error } = await supabase.auth.updateUser({
         password: newPassword,
@@ -192,7 +192,7 @@ export default function ResetPassword() {
 
       if (error) {
         console.error('[ResetPassword] updateUser error:', error);
-        
+
         // Handle specific error cases
         if (error.message.includes('New password should be different')) {
           setMessage({
@@ -205,7 +205,7 @@ export default function ResetPassword() {
             text: error.message || 'Unable to update password. Please try again.'
           });
         }
-        
+
         // Reset processing flag on error to allow retry
         isProcessingRef.current = false;
         setLoading(false);
@@ -213,7 +213,7 @@ export default function ResetPassword() {
       }
 
       console.log('[ResetPassword] Password updated successfully');
-      
+
       // Mark as permanently completed to prevent any retries
       passwordUpdatedRef.current = true;
 
@@ -227,7 +227,7 @@ export default function ResetPassword() {
       await new Promise(resolve => setTimeout(resolve, 1000));
 
       console.log('[ResetPassword] Signing out user');
-      
+
       // Clear recovery flag immediately to prevent global listener conflicts
       setPasswordRecovery(false);
 
@@ -250,7 +250,7 @@ export default function ResetPassword() {
       await new Promise(resolve => setTimeout(resolve, 200));
 
       console.log('[ResetPassword] Redirecting to login');
-      
+
       // Clear the form
       setNewPassword('');
       setConfirmPassword('');

@@ -102,7 +102,7 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
-  
+
   // Use refs to track current state in the callback to avoid stale closures
   const isLikedRef = useRef(false);
   const isLikingRef = useRef(false);

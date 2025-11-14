@@ -9,10 +9,18 @@ export const usePostsStore = create((set, get) => ({
   // Actions
   setPosts: (posts) => set({ posts, error: null }),
 
-  addPost: (post) => set((state) => ({
-    posts: [post, ...state.posts],
-    error: null
-  })),
+  addPost: (post) => set((state) => {
+    // Prevent duplicate posts with same ID
+    const isDuplicate = state.posts.some(p => p && p.id === post.id);
+    if (isDuplicate) {
+      console.warn('[PostStore] Duplicate post detected, skipping:', post.id);
+      return state;
+    }
+    return {
+      posts: [post, ...state.posts],
+      error: null
+    };
+  }),
 
   updatePost: (postId, updates) => set((state) => ({
     posts: state.posts.map((post) =>

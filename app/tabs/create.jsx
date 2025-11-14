@@ -4,16 +4,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import ConversationModal from '../../components/ConversationModal';
 import FloatingMessageButton from '../../components/FloatingMessageButton';
@@ -100,12 +100,12 @@ export default function CreatePost() {
         const base64 = await FileSystem.readAsStringAsync(imageUri, {
           encoding: FileSystem.EncodingType.Base64,
         });
-        
+
         // Validate base64 string
         if (!base64) {
           throw new Error('Failed to read image as base64');
         }
-        
+
         // Convert base64 to array buffer
         uploadData = decode(base64);
       }
@@ -169,7 +169,7 @@ export default function CreatePost() {
       if (!selectedImage.uri) {
         throw new Error('Image URI is missing');
       }
-      
+
       console.log('Uploading image...');
       const imageUrl = await uploadImage(selectedImage.uri);
       console.log('Image uploaded:', imageUrl);

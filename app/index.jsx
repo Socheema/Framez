@@ -21,17 +21,17 @@ export default function Index() {
     // Set up auth state listener - but only once
     if (!listenerSetupRef.current) {
       listenerSetupRef.current = true
-      
+
       const { data: { subscription } } = supabase.auth.onAuthStateChange((event, newSession) => {
         console.log('[INDEX] Auth state change event:', event);
-        
+
         // CRITICAL: Do not redirect during password recovery flow
         // The reset password page handles its own navigation
         if (isPasswordRecovery) {
           console.log('[INDEX] Password recovery active - ignoring auth event');
           return;
         }
-        
+
         // CRITICAL: Ignore PASSWORD_RECOVERY event - let reset page handle it
         if (event === 'PASSWORD_RECOVERY') {
           console.log('[INDEX] PASSWORD_RECOVERY event received - ignoring (reset page handles)');
