@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -36,7 +36,7 @@ export default function ResetPassword() {
     }
   }, []); // Empty dependency - run only once
 
-  const handlePasswordReset = async () => {
+  const handlePasswordReset = useCallback(async () => {
     try {
       // Check for hash parameters (Supabase magic link)
       if (Platform.OS === 'web') {
@@ -59,7 +59,10 @@ export default function ResetPassword() {
               text: 'Invalid or expired reset link. Please request a new one.',
             });
             setIsValidSession(false);
-            setTimeout(() => router.replace('/forgotPassword'), 3000);
+            // Use setTimeout with proper navigation
+            setTimeout(() => {
+              router.replace('/(auth)/forgotPassword');
+            }, 2000);
           } else {
             setIsValidSession(true);
           }
@@ -73,7 +76,9 @@ export default function ResetPassword() {
               text: 'Invalid or expired reset link. Please request a new password reset.',
             });
             setIsValidSession(false);
-            setTimeout(() => router.replace('/forgotPassword'), 3000);
+            setTimeout(() => {
+              router.replace('/(auth)/forgotPassword');
+            }, 2000);
           } else {
             setIsValidSession(true);
           }
@@ -88,7 +93,9 @@ export default function ResetPassword() {
             text: 'Invalid or expired reset link. Please request a new password reset.',
           });
           setIsValidSession(false);
-          setTimeout(() => router.replace('/forgotPassword'), 3000);
+          setTimeout(() => {
+            router.replace('/(auth)/forgotPassword');
+          }, 2000);
         } else {
           setIsValidSession(true);
         }
@@ -103,9 +110,29 @@ export default function ResetPassword() {
     } finally {
       setChecking(false);
     }
-  };
+  }, [router]);
 
-  const handleUpdatePassword = async () => {
+  const handleCancel = useCallback(() => {
+    // Clear form state
+    setNewPassword('');
+    setConfirmPassword('');
+    setMessage({ type: '', text: '' });
+    
+    // Navigate back to forgot password or login
+    // Use router.back() first, fallback to replace if needed
+    try {
+      if (router.canGoBack?.()) {
+        router.back();
+      } else {
+        router.replace('/(auth)/login');
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      router.replace('/(auth)/login');
+    }
+  }, [router]);
+
+  const handleUpdatePassword = useCallback(async () => {
     // Prevent duplicate submissions
     if (loading || passwordUpdated) {
       return;
@@ -164,14 +191,31 @@ export default function ResetPassword() {
       // Wait for user to see success message
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Sign out after successful password reset
-      await supabase.auth.signOut({ scope: 'local' });
+      try {
+        // Sign out after successful password reset
+        await supabase.auth.signOut({ scope: 'local' });
+      } catch (signoutError) {
+        console.error('Signout error:', signoutError);
+        // Continue with navigation even if signout fails
+      }
 
       // Small delay to ensure signout completes
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Redirect to login
-      router.replace('/login');
+      // Clear the form
+      setNewPassword('');
+      setConfirmPassword('');
+      setMessage({ type: '', text: '' });
+
+      // Navigate to login with explicit path using replace
+      // Use the auth group if it exists, otherwise fallback to root
+      try {
+        router.replace('/(auth)/login');
+      } catch (navError) {
+        console.error('Navigation to login error:', navError);
+        // Fallback navigation
+        router.replace('/login');
+      }
 
     } catch (err) {
       console.error('Reset password error:', err);
@@ -181,7 +225,7 @@ export default function ResetPassword() {
       });
       setLoading(false);
     }
-  };
+  }, [loading, passwordUpdated, newPassword, confirmPassword, router]);
 
   if (checking) {
     return (
@@ -205,9 +249,26 @@ export default function ResetPassword() {
           </Text>
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.replace('/forgotPassword')}
+            onPress={() => router.replace('/(auth)/forgotPassword')}
           >
             <Text style={styles.buttonText}>Request New Link</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.cancelButton}
+            onPress={() => {
+              try {
+                if (router.canGoBack?.()) {
+                  router.back();
+                } else {
+                  router.replace('/(auth)/login');
+                }
+              } catch (error) {
+                console.error('Navigation error:', error);
+                router.replace('/(auth)/login');
+              }
+            }}
+          >
+            <Text style={styles.cancelButtonText}>Back to Login</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -308,6 +369,14 @@ export default function ResetPassword() {
               <Text style={styles.buttonText}>Update Password</Text>
             )}
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.cancelButton, loading && styles.buttonDisabled]}
+            onPress={handleCancel}
+            disabled={loading}
+          >
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -398,12 +467,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: hp(1.5),
   },
+  cancelButton: {
+    width: '100%',
+    backgroundColor: '#f0f0f0',
+    paddingVertical: hp(1.8),
+    borderRadius: theme.radius.xl,
+    alignItems: 'center',
+    marginTop: hp(1),
+    borderWidth: 1,
+    borderColor: theme.colors.gray,
+  },
   buttonDisabled: {
     opacity: 0.6,
   },
   buttonText: {
     color: '#fff',
     fontWeight: theme.fonts.bold,
+    fontSize: hp(2),
+  },
+  cancelButtonText: {
+    color: theme.colors.text,
+    fontWeight: theme.fonts.semibold,
     fontSize: hp(2),
   },
   messageContainer: {
