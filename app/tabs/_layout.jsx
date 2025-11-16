@@ -5,11 +5,72 @@ import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { useAuthStore } from '../../stores/auth';
+import { useThemeStore } from '../../stores/themeStore';
 
 export default function TabLayout() {
   const { session, isLoaded } = useAuthStore();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
+
+  // Dynamic styles based on theme
+  const styles = StyleSheet.create({
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    tabBar: {
+      backgroundColor: colors.surface,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      // Height and paddingBottom are dynamically set in getTabBarStyle()
+      paddingTop: 8,
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: -2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 3,
+    },
+    tabBarItem: {
+      paddingTop: 8,
+    },
+    // Android-specific icon positioning adjustment (move up 20px)
+    iconContainerAndroid: {
+      transform: [{ translateY: -20 }],
+    },
+    // Floating button wrapper
+    floatingButtonWrapper: {
+      position: 'absolute',
+      // Top position is dynamically set via inline style in component
+      width: 56,
+      height: 56,
+      borderRadius: 28,
+      backgroundColor: colors.surface,
+      justifyContent: 'center',
+      alignItems: 'center',
+      elevation: 8,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.3,
+      shadowRadius: 6,
+    },
+    // Floating button inner
+    floatingButton: {
+      width: 48,
+      height: 48,
+      borderRadius: 24,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    floatingButtonActive: {
+      backgroundColor: theme.colors.primaryDark,
+      transform: [{ scale: 0.95 }],
+    },
+  });
 
   // 🔒 Protect tabs - redirect to login if not authenticated
   useEffect(() => {
@@ -44,7 +105,6 @@ export default function TabLayout() {
       };
     } else {
       // Android: Add extra padding to clear system navigation buttons
-      // Most Android devices have 48dp navigation bar height
       return {
         ...styles.tabBar,
         height: 80, // Taller to accommodate navigation buttons
@@ -68,8 +128,8 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: theme.colors.text,
-        tabBarInactiveTintColor: theme.colors.textLight,
+        tabBarActiveTintColor: colors.text,
+        tabBarInactiveTintColor: colors.textLight,
         tabBarShowLabel: false,
         tabBarStyle: getTabBarStyle(),
         tabBarItemStyle: styles.tabBarItem,
@@ -79,11 +139,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="feed"
         options={{
-          title: "Feed",
+          title: 'Feed',
           tabBarIcon: ({ color, focused }) => (
             <View style={Platform.OS === 'android' ? styles.iconContainerAndroid : null}>
               <Ionicons
-                name={focused ? "home" : "home-outline"}
+                name={focused ? 'home' : 'home-outline'}
                 size={28}
                 color={color}
               />
@@ -96,7 +156,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="create"
         options={{
-          title: "Create",
+          title: 'Create',
           tabBarIcon: ({ focused }) => (
             <View style={[
               styles.floatingButtonWrapper,
@@ -119,11 +179,11 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: "Profile",
+          title: 'Profile',
           tabBarIcon: ({ color, focused }) => (
             <View style={Platform.OS === 'android' ? styles.iconContainerAndroid : null}>
               <Ionicons
-                name={focused ? "person" : "person-outline"}
+                name={focused ? 'person' : 'person-outline'}
                 size={28}
                 color={color}
               />
@@ -134,66 +194,3 @@ export default function TabLayout() {
     </Tabs>
   );
 }
-
-const styles = StyleSheet.create({
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-  },
-  tabBar: {
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray,
-    // Height and paddingBottom are dynamically set in getTabBarStyle()
-    paddingTop: 8,
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: -2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-  },
-  tabBarItem: {
-    paddingTop: 8,
-  },
-  // Android-specific icon positioning adjustment (move up 20px)
-  iconContainerAndroid: {
-    transform: [{ translateY: -20 }],
-  },
-  // Floating button wrapper
-  floatingButtonWrapper: {
-    position: "absolute",
-    // Top position is dynamically set via inline style in component
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 8,
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 4,
-    },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-  },
-  // Floating button inner
-  floatingButton: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: theme.colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  floatingButtonActive: {
-    backgroundColor: theme.colors.primaryDark,
-    transform: [{ scale: 0.95 }],
-  },
-});

@@ -36,10 +36,10 @@ export async function followUser(followerId, followingId) {
     clearCache(`follower_count_${followingId}`);
     clearCache(`following_count_${followerId}`);
 
-    return data;
+    return { data, error: null };
   } catch (error) {
     console.error('Error following user:', error);
-    throw error;
+    return { data: null, error };
   }
 }
 
@@ -66,10 +66,10 @@ export async function unfollowUser(followerId, followingId) {
     clearCache(`follower_count_${followingId}`);
     clearCache(`following_count_${followerId}`);
 
-    return true;
+    return { data: true, error: null };
   } catch (error) {
     console.error('Error unfollowing user:', error);
-    throw error;
+    return { data: null, error };
   }
 }
 

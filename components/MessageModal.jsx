@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     FlatList,
     Keyboard,
@@ -18,9 +18,12 @@ import { theme } from '../constants/theme';
 import { hp, wp } from '../helpers/common';
 import { useAuthStore } from '../stores/auth';
 import { useMessageStore } from '../stores/messageStore';
+import { useThemeStore } from '../stores/themeStore';
 
 // Avatar component
 const Avatar = ({ userName, avatarUrl, size = 40 }) => {
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const initials = userName
     ?.split(' ')
     .map((n) => n[0])
@@ -29,7 +32,7 @@ const Avatar = ({ userName, avatarUrl, size = 40 }) => {
     .slice(0, 2) || '?';
 
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={{ width: size, height: size, borderRadius: size / 2, marginRight: wp(2) }}>
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -37,8 +40,8 @@ const Avatar = ({ userName, avatarUrl, size = 40 }) => {
           contentFit="cover"
         />
       ) : (
-        <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-          <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: 'white', fontWeight: theme.fonts.bold, fontSize: size * 0.4 }}>{initials}</Text>
         </View>
       )}
     </View>
@@ -53,7 +56,7 @@ const formatTime = (timestamp) => {
 };
 
 // Message bubble component
-const MessageBubble = ({ message, isOwnMessage, showAvatar, otherUser }) => {
+const MessageBubble = ({ message, isOwnMessage, showAvatar, otherUser, styles }) => {
   return (
     <View style={[styles.messageRow, isOwnMessage && styles.messageRowOwn]}>
       {!isOwnMessage && showAvatar && (
@@ -82,6 +85,8 @@ export default function MessageModal({ visible, onClose }) {
   const insets = useSafeAreaInsets();
   const messageStore = useMessageStore();
   const { currentConversation, messages, loading } = messageStore;
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
 
   const [messageText, setMessageText] = useState('');
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -89,6 +94,130 @@ export default function MessageModal({ visible, onClose }) {
 
   const otherUser = currentConversation?.otherUser;
   const userName = otherUser?.full_name || otherUser?.username || 'User';
+
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: wp(4),
+      paddingTop: hp(6),
+      paddingBottom: hp(2),
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      padding: 8,
+    },
+    headerCenter: {
+      flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginLeft: wp(3),
+    },
+    headerTitle: {
+      fontSize: hp(2.2),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginLeft: wp(2),
+      flex: 1,
+    },
+    headerRight: {
+      width: 44,
+    },
+    messagesList: {
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(2),
+    },
+    messageRow: {
+      flexDirection: 'row',
+      marginBottom: hp(1.5),
+      alignItems: 'flex-end',
+    },
+    messageRowOwn: {
+      justifyContent: 'flex-end',
+    },
+    avatar: {
+      marginRight: wp(2),
+    },
+    avatarFallback: {
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      color: 'white',
+      fontWeight: theme.fonts.bold,
+    },
+    avatarSpacer: {
+      width: 32 + wp(2),
+    },
+    messageBubble: {
+      backgroundColor: colors.surfaceSecondary,
+      borderRadius: theme.radius.xl,
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1),
+      maxWidth: '70%',
+    },
+    messageBubbleOwn: {
+      backgroundColor: theme.colors.primary,
+    },
+    messageText: {
+      fontSize: hp(1.9),
+      color: colors.text,
+      lineHeight: hp(2.6),
+    },
+    messageTextOwn: {
+      color: 'white',
+    },
+    messageTime: {
+      fontSize: hp(1.3),
+      color: colors.textLight,
+      marginTop: 4,
+    },
+    messageTimeOwn: {
+      color: 'rgba(255, 255, 255, 0.7)',
+    },
+    inputContainer: {
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1.5),
+      backgroundColor: colors.background,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'flex-end',
+      backgroundColor: colors.inputBackground,
+      borderRadius: theme.radius.xxl,
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1),
+    },
+    input: {
+      flex: 1,
+      fontSize: hp(1.9),
+      color: colors.text,
+      maxHeight: hp(12),
+      paddingVertical: 0,
+    },
+    sendButton: {
+      backgroundColor: theme.colors.primary,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginLeft: wp(2),
+    },
+    sendButtonDisabled: {
+      backgroundColor: colors.gray + '40',
+    },
+  }), [colors]);
 
   // Subscribe to real-time messages
   useEffect(() => {
@@ -159,6 +288,7 @@ export default function MessageModal({ visible, onClose }) {
         isOwnMessage={isOwnMessage}
         showAvatar={showAvatar}
         otherUser={otherUser}
+        styles={styles}
       />
     );
   };
@@ -178,7 +308,7 @@ export default function MessageModal({ visible, onClose }) {
         {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+            <Ionicons name="arrow-back" size={28} color={colors.text} />
           </TouchableOpacity>
 
           <View style={styles.headerCenter}>
@@ -220,7 +350,7 @@ export default function MessageModal({ visible, onClose }) {
             <TextInput
               style={styles.input}
               placeholder="Type a message..."
-              placeholderTextColor={theme.colors.textLight}
+              placeholderTextColor={colors.textLight}
               value={messageText}
               onChangeText={setMessageText}
               multiline
@@ -237,7 +367,7 @@ export default function MessageModal({ visible, onClose }) {
               <Ionicons
                 name="send"
                 size={20}
-                color={messageText.trim() ? 'white' : theme.colors.textLight}
+                color={messageText.trim() ? 'white' : colors.textLight}
               />
             </TouchableOpacity>
           </View>
@@ -247,126 +377,3 @@ export default function MessageModal({ visible, onClose }) {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: theme.colors.background,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    paddingTop: hp(6),
-    paddingBottom: hp(2),
-    backgroundColor: theme.colors.background,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray,
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerCenter: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginLeft: wp(3),
-  },
-  headerTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginLeft: wp(2),
-    flex: 1,
-  },
-  headerRight: {
-    width: 44,
-  },
-  messagesList: {
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(2),
-  },
-  messageRow: {
-    flexDirection: 'row',
-    marginBottom: hp(1.5),
-    alignItems: 'flex-end',
-  },
-  messageRowOwn: {
-    justifyContent: 'flex-end',
-  },
-  avatar: {
-    marginRight: wp(2),
-  },
-  avatarFallback: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: 'white',
-    fontWeight: theme.fonts.bold,
-  },
-  avatarSpacer: {
-    width: 32 + wp(2),
-  },
-  messageBubble: {
-    backgroundColor: theme.colors.gray + '30',
-    borderRadius: theme.radius.xl,
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-    maxWidth: '70%',
-  },
-  messageBubbleOwn: {
-    backgroundColor: theme.colors.primary,
-  },
-  messageText: {
-    fontSize: hp(1.9),
-    color: theme.colors.text,
-    lineHeight: hp(2.6),
-  },
-  messageTextOwn: {
-    color: 'white',
-  },
-  messageTime: {
-    fontSize: hp(1.3),
-    color: theme.colors.textLight,
-    marginTop: 4,
-  },
-  messageTimeOwn: {
-    color: 'rgba(255, 255, 255, 0.7)',
-  },
-  inputContainer: {
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    backgroundColor: theme.colors.background,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    backgroundColor: theme.colors.gray + '20',
-    borderRadius: theme.radius.xxl,
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-  },
-  input: {
-    flex: 1,
-    fontSize: hp(1.9),
-    color: theme.colors.text,
-    maxHeight: hp(12),
-    paddingVertical: 0,
-  },
-  sendButton: {
-    backgroundColor: theme.colors.primary,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: wp(2),
-  },
-  sendButtonDisabled: {
-    backgroundColor: theme.colors.gray + '40',
-  },
-});

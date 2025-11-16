@@ -1,16 +1,25 @@
 import { Slot, useRouter, useSegments } from 'expo-router';
+import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
 import ErrorBoundary from '../components/ErrorBoundary';
 import { theme } from '../constants/theme';
 import { useAuthStore } from '../stores/auth';
+import { useThemeStore } from '../stores/themeStore';
 
 console.log('=== APP _LAYOUT.JSX LOADED ===');
 
 export default function RootLayout() {
   const { session, isLoaded, loadAuth, isPasswordRecovery } = useAuthStore();
+  const { isDarkMode, loadTheme, theme: currentTheme } = useThemeStore();
   const router = useRouter();
   const segments = useSegments();
+
+  // Load theme on app start
+  useEffect(() => {
+    console.log('=== LAYOUT: Loading theme ===');
+    loadTheme();
+  }, []);
 
   // Load authentication on app start
   useEffect(() => {
@@ -65,7 +74,8 @@ export default function RootLayout() {
   // Show loading while checking auth
   if (!isLoaded) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#fff' }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: currentTheme.colors.background }}>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
@@ -73,6 +83,7 @@ export default function RootLayout() {
 
   return (
     <ErrorBoundary>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       <Slot />
     </ErrorBoundary>
   );

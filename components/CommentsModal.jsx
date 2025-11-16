@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     FlatList,
@@ -17,9 +17,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../constants/theme';
 import { hp, wp } from '../helpers/common';
 import { useAuthStore } from '../stores/auth';
+import { useThemeStore } from '../stores/themeStore';
 import { addComment, fetchPostComments } from '../utils/postsServices';
 
 const Avatar = ({ userName, avatarUrl, size = 32 }) => {
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const initials = userName
     ?.split(' ')
     .map(n => n[0])
@@ -28,7 +31,14 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
     .slice(0, 2) || '?';
 
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={{
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -36,13 +46,13 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
           resizeMode="cover"
         />
       ) : (
-        <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+        <Text style={{ color: '#fff', fontWeight: theme.fonts.semibold, fontSize: size * 0.4 }}>{initials}</Text>
       )}
     </View>
   );
 };
 
-const CommentItem = ({ comment }) => {
+const CommentItem = ({ comment, styles }) => {
   const formatTime = (timestamp) => {
     const now = new Date();
     const past = new Date(timestamp);
@@ -70,12 +80,138 @@ const CommentItem = ({ comment }) => {
 
 export default function CommentsModal({ visible, onClose, postId, initialCount = 0 }) {
   const { user, profile } = useAuthStore();
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const insets = useSafeAreaInsets();
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState('');
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const styles = useMemo(() => StyleSheet.create({
+    modalContainer: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
+      paddingBottom: hp(1.5),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    modalTitle: {
+      fontSize: hp(2.2),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    closeButton: {
+      fontSize: hp(3.5),
+      color: colors.text,
+      fontWeight: theme.fonts.medium,
+    },
+    commentsList: {
+      padding: wp(4),
+    },
+    commentItem: {
+      flexDirection: 'row',
+      marginBottom: hp(2),
+    },
+    avatar: {
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      color: '#fff',
+      fontWeight: theme.fonts.semibold,
+    },
+    commentContent: {
+      flex: 1,
+      marginLeft: wp(3),
+    },
+    commentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: hp(0.5),
+    },
+    commentUsername: {
+      fontSize: hp(1.8),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginRight: wp(2),
+    },
+    commentTime: {
+      fontSize: hp(1.5),
+      color: colors.textLight,
+    },
+    commentText: {
+      fontSize: hp(1.8),
+      color: colors.text,
+      lineHeight: hp(2.3),
+    },
+    inputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1.5),
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    input: {
+      flex: 1,
+      marginHorizontal: wp(3),
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1),
+      backgroundColor: colors.inputBackground,
+      borderRadius: theme.radius.xl,
+      fontSize: hp(1.8),
+      maxHeight: hp(12),
+      color: colors.text,
+    },
+    sendButton: {
+      padding: wp(2),
+    },
+    sendButtonText: {
+      fontSize: hp(2),
+      fontWeight: theme.fonts.semibold,
+      color: theme.colors.primary,
+    },
+    sendButtonTextDisabled: {
+      color: colors.textLight,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: wp(8),
+    },
+    emptyIcon: {
+      fontSize: hp(8),
+      marginBottom: hp(1.5),
+    },
+    emptyText: {
+      fontSize: hp(2.2),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginBottom: hp(0.5),
+    },
+    emptySubtext: {
+      fontSize: hp(1.8),
+      color: colors.textLight,
+    },
+  }), [colors]);
 
   useEffect(() => {
     if (visible && postId) {
@@ -163,7 +299,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
         ) : (
           <FlatList
             data={comments}
-            renderItem={({ item }) => <CommentItem comment={item} />}
+            renderItem={({ item }) => <CommentItem comment={item} styles={styles} />}
             keyExtractor={item => item.id}
             contentContainerStyle={styles.commentsList}
           />
@@ -181,7 +317,7 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
           <TextInput
             style={styles.input}
             placeholder="Add a comment..."
-            placeholderTextColor={theme.colors.textLight}
+            placeholderTextColor={colors.textLight}
             value={commentText}
             onChangeText={setCommentText}
             multiline
@@ -211,124 +347,4 @@ export default function CommentsModal({ visible, onClose, postId, initialCount =
   );
 }
 
-const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
-    paddingBottom: hp(1.5),
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray,
-  },
-  modalTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  closeButton: {
-    fontSize: hp(3.5),
-    color: theme.colors.text,
-    fontWeight: theme.fonts.medium,
-  },
-  commentsList: {
-    padding: wp(4),
-  },
-  commentItem: {
-    flexDirection: 'row',
-    marginBottom: hp(2),
-  },
-  avatar: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: theme.fonts.semibold,
-  },
-  commentContent: {
-    flex: 1,
-    marginLeft: wp(3),
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: hp(0.5),
-  },
-  commentUsername: {
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginRight: wp(2),
-  },
-  commentTime: {
-    fontSize: hp(1.5),
-    color: theme.colors.textLight,
-  },
-  commentText: {
-    fontSize: hp(1.8),
-    color: theme.colors.text,
-    lineHeight: hp(2.3),
-  },
-  inputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray,
-    backgroundColor: '#fff',
-  },
-  input: {
-    flex: 1,
-    marginHorizontal: wp(3),
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-    backgroundColor: theme.colors.gray,
-    borderRadius: theme.radius.xl,
-    fontSize: hp(1.8),
-    maxHeight: hp(12),
-  },
-  sendButton: {
-    padding: wp(2),
-  },
-  sendButtonText: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.primary,
-  },
-  sendButtonTextDisabled: {
-    color: theme.colors.textLight,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(8),
-  },
-  emptyIcon: {
-    fontSize: hp(8),
-    marginBottom: hp(1.5),
-  },
-  emptyText: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: hp(0.5),
-  },
-  emptySubtext: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-  },
-})
+// removed leftover static styles to avoid conflicting 'styles' references

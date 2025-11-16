@@ -1,50 +1,86 @@
-# Welcome to your Expo app 👋
+# Framez - Social Media App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern social media application built with React Native and Expo.
 
-## Get started
+## 🚀 Tech Stack
 
-1. Install dependencies
+- **Frontend**: React Native with Expo
+- **Routing**: Expo Router (file-based routing)
+- **State Management**: Zustand
+- **Backend**: Supabase (Auth, Database, Storage)
+- **Styling**: React Native StyleSheet
 
+## 📦 Installation
+
+1. Clone the repository
+   ```bash
+   git clone https://github.com/Socheema/Framez.git
+   cd framez-social
+   ```
+
+2. Install dependencies
    ```bash
    npm install
    ```
 
-2. Start the app
+3. Set up environment variables
+   - Create a `.env` file in the root directory
+   - Add your Supabase credentials
 
+4. Start the development server
    ```bash
    npx expo start
    ```
 
-In the output, you'll find options to open the app in a
+## 🏗️ Project Structure
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+framez-social/
+├── app/              # File-based routing (screens)
+├── components/       # Reusable UI components
+├── constants/        # Theme, colors, constants
+├── helpers/          # Utility functions
+├── stores/           # Zustand state management
+├── utils/            # Service functions
+└── assets/           # Images, fonts, static files
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## 🔧 Development
 
-## Learn more
+- **Web**: Press `w` in the terminal after starting
+- **iOS**: Press `i` (requires Xcode)
+- **Android**: Press `a` (requires Android Studio)
+- **Expo Go**: Scan QR code with Expo Go app
 
-To learn more about developing your project with Expo, look at the following resources:
+## 📱 Features
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- User authentication (sign up, login, password reset)
+- User profiles with avatars
+- Post creation and management
+- Real-time messaging
+- Image uploads
+- Social interactions
 
-## Join the community
+## 🔒 Environment Variables
 
-Join our community of developers creating universal apps.
+Required environment variables:
+- `EXPO_PUBLIC_SUPABASE_URL`
+- `EXPO_PUBLIC_SUPABASE_ANON_KEY`
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📚 Documentation
+
+- [Expo Documentation](https://docs.expo.dev/)
+- [Supabase Documentation](https://supabase.com/docs)
+- [Deployment Checklist](./DEPLOYMENT_CHECKLIST.md)
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a Pull Request
+
+## 📄 License
+
+This project is private and proprietary.

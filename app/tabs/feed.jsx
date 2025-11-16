@@ -24,6 +24,7 @@ import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
+import { useThemeStore } from '../../stores/themeStore';
 import {
     fetchAllPosts,
     getPostLikesCount,
@@ -36,7 +37,7 @@ import { subscribeToMultipleTables } from '../../utils/supabase';
 const { width } = Dimensions.get('window');
 
 // Avatar component with fallback to initials - Memoized for performance
-const Avatar = React.memo(({ userName, avatarUrl, size = 32 }) => {
+const Avatar = React.memo(({ userName, avatarUrl, size = 32, styles }) => {
   const initials = useMemo(() => {
     return userName
       ?.split(' ')
@@ -63,7 +64,7 @@ const Avatar = React.memo(({ userName, avatarUrl, size = 32 }) => {
 });
 
 // Skeleton loading component - Memoized
-const SkeletonLoader = React.memo(() => (
+const SkeletonLoader = React.memo(({ styles }) => (
   <View style={styles.skeletonContainer}>
     {[1, 2, 3].map((item) => (
       <View key={item} style={styles.skeletonCard}>
@@ -83,7 +84,7 @@ const SkeletonLoader = React.memo(() => (
 ));
 
 // Empty state component - Memoized
-const EmptyState = React.memo(({ onRefresh }) => (
+const EmptyState = React.memo(({ onRefresh, styles }) => (
   <View style={styles.emptyContainer}>
     <Text style={styles.emptyIcon}>📸</Text>
     <Text style={styles.emptyTitle}>No Posts Yet</Text>
@@ -97,7 +98,7 @@ const EmptyState = React.memo(({ onRefresh }) => (
 ));
 
 // Post card component - Memoized for better performance
-const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, onUserPress }) => {
+const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, onUserPress, styles }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
@@ -141,12 +142,18 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
     setLikesCount(prev => previousLiked ? prev - 1 : prev + 1);
 
     try {
+      let result;
       if (previousLiked) {
         // Unlike
-        await unlikePost(currentUserId, post.id);
+        result = await unlikePost(currentUserId, post.id);
       } else {
         // Like
-        await likePost(currentUserId, post.id);
+        result = await likePost(currentUserId, post.id);
+      }
+
+      // Check for errors with null-safety
+      if (result?.error) {
+        throw result.error;
       }
 
       // Refresh count from server to ensure sync
@@ -213,7 +220,7 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
           onPress={() => onUserPress(post.user_id)}
           activeOpacity={0.7}
         >
-          <Avatar userName={post.user_name} avatarUrl={post.avatar_url} size={32} />
+          <Avatar userName={post.user_name} avatarUrl={post.avatar_url} size={32} styles={styles} />
           <View style={styles.postHeaderText}>
             <Text style={styles.username}>{post.user_name || 'Anonymous'}</Text>
             <Text style={styles.timestamp}>{formattedTime}</Text>
@@ -315,6 +322,8 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
 export default function Feed() {
   const router = useRouter();
   const { user, session } = useAuthStore();
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const { posts, setPosts, loading, setLoading } = usePostsStore();
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState(null);
@@ -402,12 +411,19 @@ export default function Feed() {
       {
         table: 'likes',
         onInsert: async (newLike) => {
+          // ✅ With REPLICA IDENTITY FULL, all columns are guaranteed
+          // But keep defensive check as best practice
+          if (!newLike?.post_id) {
+            console.warn('⚠️ Like insert event missing post_id:', newLike);
+            return;
+          }
+
           console.log('❤️ New like on post:', newLike.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
 
           const updatedPosts = currentPosts.map(post => {
-            if (!post || !post.id) return post;
+            if (!post?.id) return post;
             if (post.id === newLike.post_id) {
               return {
                 ...post,
@@ -415,17 +431,24 @@ export default function Feed() {
               };
             }
             return post;
-          }).filter(post => post && post.id);
+          }).filter(post => post?.id);
 
           setPosts(updatedPosts);
         },
         onDelete: (deletedLike) => {
+          // ✅ With REPLICA IDENTITY FULL, post_id is now included in delete events
+          // Defensive check kept as safety net
+          if (!deletedLike?.post_id) {
+            console.warn('⚠️ Like delete event missing post_id:', deletedLike);
+            return;
+          }
+
           console.log('💔 Like removed from post:', deletedLike.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
 
           const updatedPosts = currentPosts.map(post => {
-            if (!post || !post.id) return post;
+            if (!post?.id) return post;
             if (post.id === deletedLike.post_id) {
               return {
                 ...post,
@@ -433,7 +456,7 @@ export default function Feed() {
               };
             }
             return post;
-          }).filter(post => post && post.id);
+          }).filter(post => post?.id);
 
           setPosts(updatedPosts);
         },
@@ -441,12 +464,19 @@ export default function Feed() {
       {
         table: 'comments',
         onInsert: (newComment) => {
+          // ✅ With REPLICA IDENTITY FULL, all columns are guaranteed
+          // But keep defensive check as best practice
+          if (!newComment?.post_id) {
+            console.warn('⚠️ Comment insert event missing post_id:', newComment);
+            return;
+          }
+
           console.log('💬 New comment on post:', newComment.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
 
           const updatedPosts = currentPosts.map(post => {
-            if (!post || !post.id) return post;
+            if (!post?.id) return post;
             if (post.id === newComment.post_id) {
               return {
                 ...post,
@@ -454,17 +484,24 @@ export default function Feed() {
               };
             }
             return post;
-          }).filter(post => post && post.id);
+          }).filter(post => post?.id);
 
           setPosts(updatedPosts);
         },
         onDelete: (deletedComment) => {
+          // ✅ With REPLICA IDENTITY FULL, post_id is now included in delete events
+          // Defensive check kept as safety net
+          if (!deletedComment?.post_id) {
+            console.warn('⚠️ Comment delete event missing post_id:', deletedComment);
+            return;
+          }
+
           console.log('🗑️ Comment deleted from post:', deletedComment.post_id);
           const currentPosts = usePostsStore.getState().posts;
           if (!Array.isArray(currentPosts)) return;
 
           const updatedPosts = currentPosts.map(post => {
-            if (!post || !post.id) return post;
+            if (!post?.id) return post;
             if (post.id === deletedComment.post_id) {
               return {
                 ...post,
@@ -472,7 +509,7 @@ export default function Feed() {
               };
             }
             return post;
-          }).filter(post => post && post.id);
+          }).filter(post => post?.id);
 
           setPosts(updatedPosts);
         },
@@ -552,6 +589,7 @@ export default function Feed() {
         onCommentPress={handleCommentPress}
         onRefresh={() => fetchPosts(true)}
         onUserPress={handleUserPress}
+        styles={styles}
       />
     );
   }, [user?.id, handleCommentPress, fetchPosts, handleUserPress]);
@@ -569,6 +607,263 @@ export default function Feed() {
   const filteredPosts = useMemo(() => {
     return Array.isArray(posts) ? posts.filter(post => post && post.id) : [];
   }, [posts]);
+
+  const messageStore = useMessageStore();
+
+  const styles = StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
+      paddingBottom: hp(1.5),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    headerTitle: {
+      fontSize: hp(3),
+      fontWeight: theme.fonts.bold,
+      color: colors.text,
+    },
+    listContent: {
+      paddingBottom: hp(2),
+      backgroundColor: colors.background,
+    },
+    listContentEmpty: {
+      flexGrow: 1,
+      backgroundColor: colors.background,
+    },
+
+    // Post Card
+    postCard: {
+      marginBottom: hp(2),
+      backgroundColor: colors.surface,
+    },
+    postHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(3),
+      paddingVertical: hp(1.2),
+      backgroundColor: colors.surface,
+    },
+    userInfoContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      flex: 1,
+    },
+    avatar: {
+      backgroundColor: colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    avatarText: {
+      color: '#fff',
+      fontWeight: theme.fonts.semibold,
+    },
+    postHeaderText: {
+      flex: 1,
+      marginLeft: wp(2.5),
+    },
+    username: {
+      fontSize: hp(1.8),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    timestamp: {
+      fontSize: hp(1.5),
+      color: colors.textLight,
+      marginTop: hp(0.3),
+    },
+    moreButton: {
+      padding: wp(2),
+    },
+    postImage: {
+      width: width,
+      height: width,
+      backgroundColor: colors.surfaceLight,
+    },
+    actionsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: wp(3),
+      paddingTop: hp(1.5),
+      paddingBottom: hp(1),
+      backgroundColor: colors.surface,
+    },
+    leftActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    actionButton: {
+      marginRight: wp(3),
+    },
+    postContent: {
+      paddingHorizontal: wp(3),
+      paddingBottom: hp(1.5),
+      backgroundColor: colors.surface,
+    },
+    likesContainer: {
+      paddingHorizontal: wp(3),
+      paddingBottom: hp(0.5),
+      backgroundColor: colors.surface,
+    },
+    likesText: {
+      fontSize: hp(1.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginBottom: hp(0.7),
+    },
+    captionContainer: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      paddingHorizontal: wp(3),
+      paddingBottom: hp(0.5),
+      backgroundColor: colors.surface,
+    },
+    usernameCaption: {
+      fontSize: hp(1.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginRight: wp(1),
+    },
+    // alias to match usage in JSX
+    captionUsername: {
+      fontSize: hp(1.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginRight: wp(1),
+    },
+    caption: {
+      fontSize: hp(1.7),
+      color: colors.text,
+      flex: 1,
+    },
+    viewCommentsButton: {
+      marginTop: hp(0.8),
+    },
+    viewCommentsText: {
+      fontSize: hp(1.6),
+      color: colors.textLight,
+    },
+    // aliases used in JSX
+    commentsButton: {
+      paddingHorizontal: wp(3),
+      paddingVertical: hp(1),
+      backgroundColor: colors.surface,
+    },
+    commentsText: {
+      fontSize: hp(1.6),
+      color: colors.textLight,
+    },
+
+    // Loading and Empty States
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+    },
+    emptyContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: wp(8),
+      backgroundColor: colors.background,
+    },
+    emptyTitle: {
+      fontSize: hp(2.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginTop: hp(2),
+      marginBottom: hp(1),
+    },
+    emptyText: {
+      fontSize: hp(1.8),
+      color: colors.textLight,
+      textAlign: 'center',
+      lineHeight: hp(2.5),
+      marginBottom: hp(3),
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingHorizontal: wp(8),
+      backgroundColor: colors.background,
+    },
+    errorTitle: {
+      fontSize: hp(2.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginTop: hp(2),
+      marginBottom: hp(1),
+    },
+    errorText: {
+      fontSize: hp(1.8),
+      color: colors.textLight,
+      textAlign: 'center',
+      lineHeight: hp(2.5),
+      marginBottom: hp(3),
+    },
+    errorIcon: {
+      fontSize: hp(6),
+      marginBottom: hp(1),
+    },
+
+    // Skeleton Loader
+    skeletonContainer: {
+      padding: wp(3),
+      backgroundColor: colors.background,
+    },
+    skeletonCard: {
+      marginBottom: hp(2),
+      backgroundColor: colors.surface,
+    },
+    skeletonHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(3),
+      paddingVertical: hp(1.2),
+    },
+    skeletonAvatar: {
+      backgroundColor: colors.surfaceLight,
+      borderRadius: 999,
+    },
+    skeletonTextContainer: {
+      flex: 1,
+      marginLeft: wp(2.5),
+    },
+    skeletonText: {
+      height: hp(1.8),
+      backgroundColor: colors.surfaceLight,
+      borderRadius: theme.radius.sm,
+      marginBottom: hp(0.8),
+    },
+    skeletonImage: {
+      width: width,
+      height: width,
+      backgroundColor: colors.surfaceLight,
+    },
+    skeletonActions: {
+      flexDirection: 'row',
+      paddingHorizontal: wp(3),
+      paddingVertical: hp(1.5),
+      gap: wp(3),
+    },
+    skeletonIcon: {
+      width: wp(6),
+      height: wp(6),
+      backgroundColor: colors.surfaceLight,
+      borderRadius: theme.radius.sm,
+    },
+  });
 
   // Error state
   if (error && !refreshing && posts.length === 0) {
@@ -592,8 +887,6 @@ export default function Feed() {
     );
   }
 
-  const messageStore = useMessageStore();
-
   return (
     <View style={styles.container}>
       {/* Header - REMOVED ICONS since tabs handle navigation */}
@@ -603,7 +896,7 @@ export default function Feed() {
 
       {/* Loading skeleton */}
       {loading && initialLoad ? (
-        <SkeletonLoader />
+  <SkeletonLoader styles={styles} />
       ) : (
         <FlatList
           data={filteredPosts}
@@ -621,7 +914,7 @@ export default function Feed() {
               colors={['#000']}
             />
           }
-          ListEmptyComponent={<EmptyState onRefresh={onRefresh} />}
+          ListEmptyComponent={<EmptyState onRefresh={onRefresh} styles={styles} />}
           showsVerticalScrollIndicator={false}
           removeClippedSubviews={true}
           maxToRenderPerBatch={5}
@@ -655,255 +948,3 @@ export default function Feed() {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
-    paddingBottom: hp(1.5),
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray,
-    backgroundColor: '#fff',
-  },
-  headerTitle: {
-    fontSize: hp(3),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  listContent: {
-    paddingBottom: hp(2),
-  },
-  listContentEmpty: {
-    flexGrow: 1,
-  },
-
-  // Post Card
-  postCard: {
-    marginBottom: hp(2),
-    backgroundColor: '#fff',
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(1.2),
-  },
-  userInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  avatar: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: theme.fonts.semibold,
-  },
-  postHeaderText: {
-    flex: 1,
-    marginLeft: wp(2.5),
-  },
-  username: {
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  timestamp: {
-    fontSize: hp(1.5),
-    color: theme.colors.textLight,
-    marginTop: hp(0.3),
-  },
-  moreButton: {
-    padding: wp(2),
-  },
-  postImage: {
-    width: width,
-    height: width,
-    backgroundColor: theme.colors.gray,
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(3),
-    paddingTop: hp(1.5),
-    paddingBottom: hp(0.5),
-  },
-  leftActions: {
-    flexDirection: 'row',
-    gap: wp(4),
-    alignItems: 'center',
-  },
-  actionButton: {
-    padding: wp(1),
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  likesContainer: {
-    paddingHorizontal: wp(3),
-    paddingTop: hp(0.5),
-  },
-  likesText: {
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  captionContainer: {
-    paddingHorizontal: wp(3),
-    paddingTop: hp(0.5),
-  },
-  caption: {
-    fontSize: hp(1.8),
-    color: theme.colors.text,
-    lineHeight: hp(2.3),
-  },
-  captionUsername: {
-    fontWeight: theme.fonts.semibold,
-  },
-  commentsButton: {
-    paddingHorizontal: wp(3),
-    paddingTop: hp(0.5),
-  },
-  commentsText: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-  },
-
-  // Empty State
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(8),
-  },
-  emptyIcon: {
-    fontSize: hp(10),
-    marginBottom: hp(2),
-  },
-  emptyTitle: {
-    fontSize: hp(2.7),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: hp(1),
-  },
-  emptyText: {
-    fontSize: hp(2),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-    marginBottom: hp(3),
-  },
-  emptyButton: {
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(8),
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.xl,
-  },
-  emptyButtonText: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: '#fff',
-  },
-
-  // Error State
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: wp(8),
-  },
-  errorIcon: {
-    fontSize: hp(8),
-    marginBottom: hp(2),
-  },
-  errorTitle: {
-    fontSize: hp(2.5),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: hp(1),
-  },
-  errorText: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-    marginBottom: hp(3),
-  },
-  retryButton: {
-    paddingVertical: hp(1.5),
-    paddingHorizontal: wp(8),
-    backgroundColor: theme.colors.primary,
-    borderRadius: theme.radius.xx,
-  },
-  retryButtonText: {
-    textAlign: "center",
-    color: theme.colors.text,
-    fontSize: hp(1.6),
-  },
-
-  // Skeleton Loader
-  skeletonContainer: {
-    flex: 1,
-  },
-  skeletonCard: {
-    marginBottom: hp(2),
-  },
-  skeletonHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(3),
-    paddingVertical: hp(1.2),
-  },
-  skeletonAvatar: {
-    width: hp(4),
-    height: hp(4),
-    borderRadius: hp(2),
-    backgroundColor: theme.colors.darkLight,
-  },
-  skeletonHeaderText: {
-    flex: 1,
-    marginLeft: wp(2.5),
-  },
-  skeletonUsername: {
-    width: wp(30),
-    height: hp(1.8),
-    backgroundColor: theme.colors.darkLight,
-    borderRadius: theme.radius.xs,
-    marginBottom: hp(0.7),
-  },
-  skeletonTime: {
-    width: wp(20),
-    height: hp(1.5),
-    backgroundColor: theme.colors.darkLight,
-    borderRadius: theme.radius.xs,
-  },
-  skeletonImage: {
-    width: width,
-    height: width,
-    backgroundColor: theme.colors.darkLight,
-  },
-  skeletonCaption: {
-    width: width - wp(20),
-    height: hp(1.8),
-    backgroundColor: theme.colors.darkLight,
-    borderRadius: theme.radius.xs,
-    marginHorizontal: wp(3),
-    marginTop: hp(1.5),
-  },
-  skeletonCaptionShort: {
-    width: width - wp(40),
-    height: hp(1.8),
-    backgroundColor: theme.colors.darkLight,
-    borderRadius: theme.radius.xs,
-    marginHorizontal: wp(3),
-    marginTop: hp(0.7),
-  },
-});

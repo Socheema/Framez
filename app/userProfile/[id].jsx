@@ -1,16 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import MessageModal from '../../components/MessageModal';
 import { theme } from '../../constants/theme';
@@ -18,13 +18,14 @@ import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 import { useFollowStore } from '../../stores/followStore';
 import { useMessageStore } from '../../stores/messageStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { subscribeToMultipleTables, supabase } from '../../utils/supabase';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 6) / 3; // 3 columns with 3px gaps
 
-// Avatar component
-const Avatar = ({ userName, avatarUrl, size = 80 }) => {
+// Avatar component (themed via props)
+const Avatar = ({ userName, avatarUrl, size = 80, colors, theme }) => {
   const initials = userName
     ?.split(' ')
     .map(n => n[0])
@@ -33,7 +34,7 @@ const Avatar = ({ userName, avatarUrl, size = 80 }) => {
     .slice(0, 2) || '?';
 
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={{ marginRight: wp(6) }}>
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -41,42 +42,42 @@ const Avatar = ({ userName, avatarUrl, size = 80 }) => {
           contentFit="cover"
         />
       ) : (
-        <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-          <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: theme.fonts.bold, fontSize: size * 0.4 }}>{initials}</Text>
         </View>
       )}
     </View>
   );
 };
 
-// Grid post item component
-const GridPostItem = ({ post, onPress }) => (
+// Grid post item component (themed via props)
+const GridPostItem = ({ post, onPress, colors }) => (
   <TouchableOpacity
-    style={styles.gridItem}
+    style={{ width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE, marginBottom: 3 }}
     onPress={() => onPress(post)}
     activeOpacity={0.8}
   >
     {post.image_url ? (
       <Image
         source={{ uri: post.image_url }}
-        style={styles.gridImage}
+        style={{ width: '100%', height: '100%' }}
         contentFit="cover"
         transition={200}
       />
     ) : (
-      <View style={styles.gridPlaceholder}>
-        <Text style={styles.gridPlaceholderText}>No Image</Text>
+      <View style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }}>
+        <Text style={{ fontSize: hp(1.4), color: colors.textLight }}>No Image</Text>
       </View>
     )}
   </TouchableOpacity>
 );
 
-// Empty state component
-const EmptyState = () => (
-  <View style={styles.emptyContainer}>
-    <Text style={styles.emptyIcon}>📸</Text>
-    <Text style={styles.emptyTitle}>No Posts Yet</Text>
-    <Text style={styles.emptyText}>
+// Empty state component (themed via props)
+const EmptyState = ({ colors, theme }) => (
+  <View style={{ paddingVertical: hp(10), alignItems: 'center', justifyContent: 'center' }}>
+    <Text style={{ fontSize: hp(8), marginBottom: hp(2) }}>📸</Text>
+    <Text style={{ fontSize: hp(2.2), fontWeight: theme.fonts.semibold, color: colors.text, marginBottom: hp(1) }}>No Posts Yet</Text>
+    <Text style={{ fontSize: hp(1.8), color: colors.textLight, textAlign: 'center', paddingHorizontal: wp(10) }}>
       This user hasn't posted anything yet
     </Text>
   </View>
@@ -88,6 +89,8 @@ export default function UserProfile() {
   const { user: currentUser } = useAuthStore();
   const followStore = useFollowStore();
   const messageStore = useMessageStore();
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const [userProfile, setUserProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,6 +100,7 @@ export default function UserProfile() {
   const isFollowing = followStore.isFollowing(id);
   const followerCount = followStore.getFollowerCount(id);
   const followingCount = followStore.getFollowingCount(id);
+  const isPending = followStore.isPending(id);
 
   useEffect(() => {
     if (id) {
@@ -114,12 +118,24 @@ export default function UserProfile() {
       {
         table: 'follows',
         onInsert: (newFollow) => {
+          // ✅ With REPLICA IDENTITY FULL, all columns are guaranteed
+          if (!newFollow?.following_id || !newFollow?.follower_id) {
+            console.warn('⚠️ Follow insert event missing IDs:', newFollow);
+            return;
+          }
+
           // Update counts if this follow involves the current profile
           if (newFollow.following_id === id || newFollow.follower_id === id) {
             followStore.handleFollowInsert(newFollow);
           }
         },
         onDelete: (deletedFollow) => {
+          // ✅ With REPLICA IDENTITY FULL, IDs are now included in delete events
+          if (!deletedFollow?.following_id || !deletedFollow?.follower_id) {
+            console.warn('⚠️ Follow delete event missing IDs:', deletedFollow);
+            return;
+          }
+
           // Update counts if this unfollow involves the current profile
           if (deletedFollow.following_id === id || deletedFollow.follower_id === id) {
             followStore.handleFollowDelete(deletedFollow);
@@ -256,6 +272,39 @@ export default function UserProfile() {
     router.back();
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: wp(4), paddingTop: hp(6), paddingBottom: hp(2), backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border },
+    backButton: { padding: 8 },
+    headerTitle: { fontSize: hp(2.2), fontWeight: theme.fonts.bold, color: colors.text },
+    headerRight: { width: 44 },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    errorContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: wp(8) },
+    errorText: { fontSize: hp(2), color: colors.text, marginBottom: hp(2) },
+    errorButton: { backgroundColor: theme.colors.primary, paddingHorizontal: wp(8), paddingVertical: hp(1.5), borderRadius: theme.radius.md },
+    errorButtonText: { color: '#fff', fontSize: hp(1.8), fontWeight: theme.fonts.semibold },
+    listContent: { paddingBottom: hp(2) },
+    profileSection: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: wp(4), paddingVertical: hp(3) },
+    statsContainer: { flex: 1, flexDirection: 'row', justifyContent: 'space-around' },
+    statItem: { alignItems: 'center' },
+    statNumber: { fontSize: hp(2.2), fontWeight: theme.fonts.bold, color: colors.text },
+    statLabel: { fontSize: hp(1.6), color: colors.textLight, marginTop: 2 },
+    userDetails: { paddingHorizontal: wp(4), marginBottom: hp(2) },
+    userName: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: colors.text, marginBottom: 4 },
+    userEmail: { fontSize: hp(1.6), color: colors.textLight, marginBottom: 8 },
+    userBio: { fontSize: hp(1.7), color: colors.text, lineHeight: hp(2.4) },
+    actionButtons: { flexDirection: 'row', paddingHorizontal: wp(4), marginBottom: hp(2) },
+    followButton: { flex: 1, backgroundColor: theme.colors.primary, paddingVertical: hp(1.2), borderRadius: theme.radius.sm, alignItems: 'center', marginRight: wp(1.5) },
+    followButtonText: { color: '#fff', fontSize: hp(1.7), fontWeight: theme.fonts.semibold },
+    followingButton: { backgroundColor: colors.background, borderWidth: 1, borderColor: colors.border },
+    followingButtonText: { color: colors.text },
+    messageButton: { flex: 1, backgroundColor: colors.background, paddingVertical: hp(1.2), borderRadius: theme.radius.sm, borderWidth: 1, borderColor: colors.border, alignItems: 'center', marginLeft: wp(1.5) },
+    messageButtonText: { color: colors.text, fontSize: hp(1.7), fontWeight: theme.fonts.semibold },
+    gridHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp(1.5), borderTopWidth: 1, borderTopColor: colors.border },
+    gridHeaderText: { fontSize: hp(1.6), fontWeight: theme.fonts.semibold, color: colors.text, letterSpacing: 1, marginLeft: 8 },
+    gridRow: { justifyContent: 'space-between', paddingHorizontal: 0, marginBottom: 3 },
+  }), [colors, theme]);
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -306,7 +355,7 @@ export default function UserProfile() {
       {/* Header with back button */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+          <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{userName}</Text>
         <View style={styles.headerRight} />
@@ -354,17 +403,23 @@ export default function UserProfile() {
                 <TouchableOpacity
                   style={[
                     styles.followButton,
-                    isFollowing && styles.followingButton
+                    isFollowing && styles.followingButton,
+                    isPending && { opacity: 0.6 }
                   ]}
                   onPress={handleFollowToggle}
+                  disabled={isPending}
                   activeOpacity={0.7}
                 >
-                  <Text style={[
-                    styles.followButtonText,
-                    isFollowing && styles.followingButtonText
-                  ]}>
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Text>
+                  {isPending ? (
+                    <ActivityIndicator size="small" color={isFollowing ? theme.colors.text : '#fff'} />
+                  ) : (
+                    <Text style={[
+                      styles.followButtonText,
+                      isFollowing && styles.followingButtonText
+                    ]}>
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </Text>
+                  )}
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.messageButton}
@@ -377,7 +432,7 @@ export default function UserProfile() {
 
             {/* Posts Grid Header */}
             <View style={styles.gridHeader}>
-              <Ionicons name="grid-outline" size={24} color="#000" />
+              <Ionicons name="grid-outline" size={24} color={colors.text} />
               <Text style={styles.gridHeaderText}>POSTS</Text>
             </View>
           </>
@@ -390,7 +445,7 @@ export default function UserProfile() {
         numColumns={3}
         columnWrapperStyle={styles.gridRow}
         contentContainerStyle={styles.listContent}
-        ListEmptyComponent={<EmptyState />}
+        ListEmptyComponent={<EmptyState colors={colors} theme={theme} />}
         refreshing={refreshing}
         onRefresh={onRefresh}
         showsVerticalScrollIndicator={false}
@@ -405,219 +460,3 @@ export default function UserProfile() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    paddingTop: hp(6),
-    paddingBottom: hp(2),
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#efefef',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  headerRight: {
-    width: 44, // Same width as back button for centering
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: wp(8),
-  },
-  errorText: {
-    fontSize: hp(2),
-    color: theme.colors.text,
-    marginBottom: hp(2),
-  },
-  errorButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(1.5),
-    borderRadius: theme.radius.md,
-  },
-  errorButtonText: {
-    color: '#fff',
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-  },
-  listContent: {
-    paddingBottom: hp(2),
-  },
-  profileSection: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(3),
-  },
-  avatar: {
-    marginRight: wp(6),
-  },
-  avatarFallback: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: theme.fonts.bold,
-  },
-  statsContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  statLabel: {
-    fontSize: hp(1.6),
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  userDetails: {
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2),
-  },
-  userName: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: hp(1.6),
-    color: theme.colors.textLight,
-    marginBottom: 8,
-  },
-  userBio: {
-    fontSize: hp(1.7),
-    color: theme.colors.text,
-    lineHeight: hp(2.4),
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    paddingHorizontal: wp(4),
-    marginBottom: hp(2),
-  },
-  followButton: {
-    flex: 1,
-    backgroundColor: theme.colors.primary,
-    paddingVertical: hp(1.2),
-    borderRadius: theme.radius.sm,
-    alignItems: 'center',
-    marginRight: wp(1.5),
-  },
-  followButtonText: {
-    color: '#fff',
-    fontSize: hp(1.7),
-    fontWeight: theme.fonts.semibold,
-  },
-  followingButton: {
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: theme.colors.gray,
-  },
-  followingButtonText: {
-    color: theme.colors.text,
-  },
-  messageButton: {
-    flex: 1,
-    backgroundColor: '#fff',
-    paddingVertical: hp(1.2),
-    borderRadius: theme.radius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.gray,
-    alignItems: 'center',
-    marginLeft: wp(1.5),
-  },
-  messageButtonText: {
-    color: theme.colors.text,
-    fontSize: hp(1.7),
-    fontWeight: theme.fonts.semibold,
-  },
-  gridHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: hp(1.5),
-    borderTopWidth: 1,
-    borderTopColor: '#efefef',
-  },
-  gridHeaderText: {
-    fontSize: hp(1.6),
-    fontWeight: theme.fonts.semibold,
-    color: '#000',
-    letterSpacing: 1,
-    marginLeft: 8,
-  },
-  gridRow: {
-    justifyContent: 'space-between',
-    paddingHorizontal: 0,
-    marginBottom: 3,
-  },
-  gridItem: {
-    width: GRID_ITEM_SIZE,
-    height: GRID_ITEM_SIZE,
-    marginBottom: 3,
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gridPlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#f0f0f0',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  gridPlaceholderText: {
-    fontSize: hp(1.4),
-    color: theme.colors.textLight,
-  },
-  emptyContainer: {
-    paddingVertical: hp(10),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  emptyIcon: {
-    fontSize: hp(8),
-    marginBottom: hp(2),
-  },
-  emptyTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: hp(1),
-  },
-  emptyText: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-    paddingHorizontal: wp(10),
-  },
-});

@@ -1,11 +1,11 @@
 
 import { create } from 'zustand';
 import {
-  followUser,
-  getFollowerCount,
-  getFollowingCount,
-  isFollowing,
-  unfollowUser,
+    followUser,
+    getFollowerCount,
+    getFollowingCount,
+    isFollowing,
+    unfollowUser,
 } from '../utils/followsService';
 
 export const useFollowStore = create((set, get) => ({
@@ -15,6 +15,8 @@ export const useFollowStore = create((set, get) => ({
   followingCounts: {}, // { userId: number } - cache of following counts
   loading: false,
   error: null,
+  // Track pending follow/unfollow actions per target userId to prevent rapid taps
+  pendingTargets: {}, // { targetUserId: boolean }
 
   // Actions
 
@@ -22,30 +24,45 @@ export const useFollowStore = create((set, get) => ({
    * Follow a user with optimistic updates
    */
   followUser: async (currentUserId, targetUserId) => {
-    // Optimistic update - update UI immediately
+    // Prevent duplicate in-flight actions
+    if (get().pendingTargets[targetUserId]) return true;
+
+    // Optimistic: only flip following state; let counts sync via realtime or refresh after success
     set((state) => ({
       followingMap: {
         ...state.followingMap,
         [targetUserId]: true,
       },
-      followerCounts: {
-        ...state.followerCounts,
-        [targetUserId]: (state.followerCounts[targetUserId] || 0) + 1,
-      },
-      followingCounts: {
-        ...state.followingCounts,
-        [currentUserId]: (state.followingCounts[currentUserId] || 0) + 1,
+      pendingTargets: {
+        ...state.pendingTargets,
+        [targetUserId]: true,
       },
     }));
 
     try {
       const result = await followUser(currentUserId, targetUserId);
 
-      // If result is null, it means already following (duplicate)
-      if (result === null) {
-        console.log('Already following, UI already updated');
-        return true;
+      // Check for errors with null-safety
+      if (result?.error) {
+        throw result.error;
       }
+
+      // Refresh counts from server to ensure accuracy
+      const [followers, following] = await Promise.all([
+        getFollowerCount(targetUserId),
+        getFollowingCount(currentUserId),
+      ]);
+
+      set((state) => ({
+        followerCounts: {
+          ...state.followerCounts,
+          [targetUserId]: followers,
+        },
+        followingCounts: {
+          ...state.followingCounts,
+          [currentUserId]: following,
+        },
+      }));
 
       return true;
     } catch (error) {
@@ -57,18 +74,18 @@ export const useFollowStore = create((set, get) => ({
           ...state.followingMap,
           [targetUserId]: false,
         },
-        followerCounts: {
-          ...state.followerCounts,
-          [targetUserId]: Math.max((state.followerCounts[targetUserId] || 0) - 1, 0),
-        },
-        followingCounts: {
-          ...state.followingCounts,
-          [currentUserId]: Math.max((state.followingCounts[currentUserId] || 0) - 1, 0),
-        },
         error: error.message,
       }));
 
       return false;
+    } finally {
+      // Clear pending flag
+      set((state) => ({
+        pendingTargets: {
+          ...state.pendingTargets,
+          [targetUserId]: false,
+        },
+      }));
     }
   },
 
@@ -76,24 +93,46 @@ export const useFollowStore = create((set, get) => ({
    * Unfollow a user with optimistic updates
    */
   unfollowUser: async (currentUserId, targetUserId) => {
-    // Optimistic update - update UI immediately
+    // Prevent duplicate in-flight actions
+    if (get().pendingTargets[targetUserId]) return true;
+
+    // Optimistic: only flip following state; let counts sync via realtime or refresh after success
     set((state) => ({
       followingMap: {
         ...state.followingMap,
         [targetUserId]: false,
       },
-      followerCounts: {
-        ...state.followerCounts,
-        [targetUserId]: Math.max((state.followerCounts[targetUserId] || 0) - 1, 0),
-      },
-      followingCounts: {
-        ...state.followingCounts,
-        [currentUserId]: Math.max((state.followingCounts[currentUserId] || 0) - 1, 0),
+      pendingTargets: {
+        ...state.pendingTargets,
+        [targetUserId]: true,
       },
     }));
 
     try {
-      await unfollowUser(currentUserId, targetUserId);
+      const result = await unfollowUser(currentUserId, targetUserId);
+
+      // Check for errors with null-safety
+      if (result?.error) {
+        throw result.error;
+      }
+
+      // Refresh counts from server to ensure accuracy
+      const [followers, following] = await Promise.all([
+        getFollowerCount(targetUserId),
+        getFollowingCount(currentUserId),
+      ]);
+
+      set((state) => ({
+        followerCounts: {
+          ...state.followerCounts,
+          [targetUserId]: followers,
+        },
+        followingCounts: {
+          ...state.followingCounts,
+          [currentUserId]: following,
+        },
+      }));
+
       return true;
     } catch (error) {
       console.error('Error in unfollowUser:', error);
@@ -104,18 +143,18 @@ export const useFollowStore = create((set, get) => ({
           ...state.followingMap,
           [targetUserId]: true,
         },
-        followerCounts: {
-          ...state.followerCounts,
-          [targetUserId]: (state.followerCounts[targetUserId] || 0) + 1,
-        },
-        followingCounts: {
-          ...state.followingCounts,
-          [currentUserId]: (state.followingCounts[currentUserId] || 0) + 1,
-        },
         error: error.message,
       }));
 
       return false;
+    } finally {
+      // Clear pending flag
+      set((state) => ({
+        pendingTargets: {
+          ...state.pendingTargets,
+          [targetUserId]: false,
+        },
+      }));
     }
   },
 
@@ -229,6 +268,13 @@ export const useFollowStore = create((set, get) => ({
   },
 
   /**
+   * Check if follow/unfollow is pending for a target
+   */
+  isPending: (targetUserId) => {
+    return !!get().pendingTargets[targetUserId];
+  },
+
+  /**
    * Get cached follower count
    */
   getFollowerCount: (userId) => {
@@ -271,10 +317,6 @@ export const useFollowStore = create((set, get) => ({
         ...state.followingCounts,
         [follow.follower_id]: Math.max((state.followingCounts[follow.follower_id] || 0) - 1, 0),
       },
-      followingMap: {
-        ...state.followingMap,
-        [follow.following_id]: follow.follower_id === get().currentUserId ? false : state.followingMap[follow.following_id],
-      },
     }));
   },
 
@@ -293,5 +335,6 @@ export const useFollowStore = create((set, get) => ({
       followingCounts: {},
       loading: false,
       error: null,
+      pendingTargets: {},
     }),
 }));

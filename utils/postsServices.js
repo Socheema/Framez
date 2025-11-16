@@ -173,11 +173,12 @@ export async function likePost(userId, postId) {
     // Clear caches
     clearCache(`like_${userId}_${postId}`);
     clearCache('all_posts');
+    clearCache(`likes_count_${postId}`);
 
-    return data;
+    return { data, error: null };
   } catch (error) {
     console.error('Error liking post:', error);
-    throw error;
+    return { data: null, error };
   }
 }
 
@@ -202,11 +203,12 @@ export async function unlikePost(userId, postId) {
     // Clear caches
     clearCache(`like_${userId}_${postId}`);
     clearCache('all_posts');
+    clearCache(`likes_count_${postId}`);
 
-    return true;
+    return { data: true, error: null };
   } catch (error) {
     console.error('Error unliking post:', error);
-    throw error;
+    return { data: null, error };
   }
 }
 

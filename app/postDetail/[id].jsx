@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
     ActivityIndicator,
     Alert,
@@ -17,14 +17,17 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
+import { useThemeStore } from '../../stores/themeStore';
 import { addComment, fetchPostComments } from '../../utils/postsServices';
 import { subscribeToMultipleTables, supabase } from '../../utils/supabase';
 
 // Avatar component
 const Avatar = ({ userName, avatarUrl, size = 32 }) => {
+  // Use static primary color for avatar background to avoid coupling with component styles
   const initials = userName
     ?.split(' ')
     .map(n => n[0])
@@ -33,7 +36,14 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
     .slice(0, 2) || '?';
 
   return (
-    <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+    <View style={{
+      width: size,
+      height: size,
+      borderRadius: size / 2,
+      backgroundColor: theme.colors.primary,
+      justifyContent: 'center',
+      alignItems: 'center',
+    }}>
       {avatarUrl ? (
         <Image
           source={{ uri: avatarUrl }}
@@ -41,8 +51,8 @@ const Avatar = ({ userName, avatarUrl, size = 32 }) => {
           contentFit="cover"
         />
       ) : (
-        <View style={[styles.avatarFallback, { width: size, height: size, borderRadius: size / 2 }]}>
-          <Text style={[styles.avatarText, { fontSize: size * 0.4 }]}>{initials}</Text>
+        <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: theme.colors.primary, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#fff', fontWeight: theme.fonts.bold, fontSize: size * 0.4 }}>{initials}</Text>
         </View>
       )}
     </View>
@@ -78,9 +88,12 @@ const CommentItem = ({ comment, onUserPress }) => {
 };
 
 export default function PostDetail() {
+  const insets = useSafeAreaInsets();
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { user } = useAuthStore();
+  const { user, profile } = useAuthStore();
+  const { theme: currentTheme } = useThemeStore();
+  const colors = currentTheme.colors;
   const [post, setPost] = useState(null);
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -446,12 +459,262 @@ export default function PostDetail() {
     }
   };
 
+  const styles = useMemo(() => StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: wp(4),
+      paddingTop: hp(6),
+      paddingBottom: hp(2),
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      padding: 8,
+    },
+    headerTitle: {
+      fontSize: hp(2.2),
+      fontWeight: theme.fonts.bold,
+      color: colors.text,
+    },
+    headerRight: {
+      width: 44,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: wp(8),
+    },
+    errorText: {
+      fontSize: hp(2),
+      color: colors.text,
+      marginBottom: hp(2),
+    },
+    errorButton: {
+      backgroundColor: theme.colors.primary,
+      paddingHorizontal: wp(8),
+      paddingVertical: hp(1.5),
+      borderRadius: theme.radius.md,
+    },
+    errorButtonText: {
+      color: '#fff',
+      fontSize: hp(1.8),
+      fontWeight: theme.fonts.semibold,
+    },
+    scrollView: {
+      flex: 1,
+    },
+    postHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1.5),
+    },
+    postHeaderText: {
+      flex: 1,
+      marginLeft: wp(3),
+    },
+    username: {
+      fontSize: hp(1.9),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    timestamp: {
+      fontSize: hp(1.4),
+      color: colors.textLight,
+      marginTop: 2,
+    },
+    postImage: {
+      width: '100%',
+      height: wp(100),
+      backgroundColor: colors.surfaceLight,
+    },
+    actionsContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1),
+    },
+    leftActions: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    actionButton: {
+      marginRight: wp(4),
+      padding: wp(1),
+    },
+    likesContainer: {
+      paddingHorizontal: wp(4),
+      paddingBottom: hp(1),
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    likesText: {
+      fontSize: hp(1.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    likesPreview: {
+      flexDirection: 'row',
+      marginLeft: wp(2),
+      alignItems: 'center',
+    },
+    likeAvatarWrapper: {
+      borderWidth: 2,
+      borderColor: colors.background,
+      borderRadius: 10,
+    },
+    captionContainer: {
+      paddingHorizontal: wp(4),
+      paddingBottom: hp(2),
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    captionUsername: {
+      fontSize: hp(1.7),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    captionText: {
+      fontSize: hp(1.7),
+      color: colors.text,
+      lineHeight: hp(2.4),
+    },
+    commentsSection: {
+      paddingHorizontal: wp(4),
+      paddingTop: hp(2),
+      paddingBottom: hp(10),
+    },
+    commentsTitle: {
+      fontSize: hp(1.9),
+      fontWeight: theme.fonts.bold,
+      color: colors.text,
+      marginBottom: hp(2),
+    },
+    commentItem: {
+      flexDirection: 'row',
+      marginBottom: hp(2),
+    },
+    commentContent: {
+      flex: 1,
+      marginLeft: wp(3),
+    },
+    commentHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    commentUsername: {
+      fontSize: hp(1.6),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+      marginRight: wp(2),
+    },
+    commentTime: {
+      fontSize: hp(1.4),
+      color: colors.textLight,
+    },
+    commentText: {
+      fontSize: hp(1.6),
+      color: colors.text,
+      lineHeight: hp(2.2),
+    },
+    noComments: {
+      fontSize: hp(1.6),
+      color: colors.textLight,
+      textAlign: 'center',
+      paddingVertical: hp(3),
+    },
+    commentInputContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1.5),
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    commentInput: {
+      flex: 1,
+      marginHorizontal: wp(3),
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1),
+      backgroundColor: colors.inputBackground,
+      borderRadius: theme.radius.xl,
+      fontSize: hp(1.7),
+      color: colors.text,
+      maxHeight: hp(10),
+    },
+    sendButton: {
+      padding: wp(2),
+    },
+    modalOverlay: {
+      flex: 1,
+      backgroundColor: colors.overlay,
+      justifyContent: 'flex-end',
+    },
+    modalContent: {
+      backgroundColor: colors.surface,
+      borderTopLeftRadius: theme.radius.xxl,
+      borderTopRightRadius: theme.radius.xxl,
+      maxHeight: hp(70),
+      paddingBottom: hp(4),
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(2),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: hp(2.2),
+      fontWeight: theme.fonts.bold,
+      color: colors.text,
+    },
+    likedUserItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingVertical: hp(1.5),
+    },
+    likedUserInfo: {
+      marginLeft: wp(3),
+      flex: 1,
+    },
+    likedUserName: {
+      fontSize: hp(1.8),
+      fontWeight: theme.fonts.semibold,
+      color: colors.text,
+    },
+    likedUserUsername: {
+      fontSize: hp(1.5),
+      color: colors.textLight,
+      marginTop: 2,
+    },
+  }), [colors]);
+
   if (loading) {
     return (
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+            <Ionicons name="arrow-back" size={28} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post</Text>
           <View style={styles.headerRight} />
@@ -469,7 +732,7 @@ export default function PostDetail() {
       <View style={styles.container}>
         <View style={styles.header}>
           <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-            <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+            <Ionicons name="arrow-back" size={28} color={colors.text} />
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Post</Text>
           <View style={styles.headerRight} />
@@ -494,7 +757,7 @@ export default function PostDetail() {
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={28} color={theme.colors.text} />
+          <Ionicons name="arrow-back" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Post</Text>
         <View style={styles.headerRight} />
@@ -589,7 +852,7 @@ export default function PostDetail() {
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Likes</Text>
               <TouchableOpacity onPress={() => setShowLikesModal(false)}>
-                <Ionicons name="close" size={28} color={theme.colors.text} />
+                <Ionicons name="close" size={28} color={colors.text} />
               </TouchableOpacity>
             </View>
             <FlatList
@@ -622,16 +885,22 @@ export default function PostDetail() {
       </Modal>
 
       {/* Comment Input */}
-      <View style={styles.commentInputContainer}>
+      <View
+        style={[
+          styles.commentInputContainer,
+          // Ensure the input sits above Android soft nav bar with at least 10px
+          { marginBottom: Platform.OS === 'android' ? Math.max(insets.bottom, 10) : insets.bottom }
+        ]}
+      >
         <Avatar
-          userName={user?.profile?.full_name || user?.profile?.username || user?.email}
-          avatarUrl={user?.profile?.avatar_url}
+          userName={profile?.full_name || profile?.username || user?.email}
+          avatarUrl={profile?.avatar_url}
           size={32}
         />
         <TextInput
           style={styles.commentInput}
           placeholder="Add a comment..."
-          placeholderTextColor={theme.colors.textLight}
+          placeholderTextColor={colors.textLight}
           value={newComment}
           onChangeText={setNewComment}
           multiline
@@ -657,266 +926,4 @@ export default function PostDetail() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    paddingTop: hp(6),
-    paddingBottom: hp(2),
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#efefef',
-  },
-  backButton: {
-    padding: 8,
-  },
-  headerTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  headerRight: {
-    width: 44,
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: wp(8),
-  },
-  errorText: {
-    fontSize: hp(2),
-    color: theme.colors.text,
-    marginBottom: hp(2),
-  },
-  errorButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: wp(8),
-    paddingVertical: hp(1.5),
-    borderRadius: theme.radius.md,
-  },
-  errorButtonText: {
-    color: '#fff',
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  postHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-  },
-  avatar: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarFallback: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: theme.fonts.bold,
-  },
-  postHeaderText: {
-    flex: 1,
-    marginLeft: wp(3),
-  },
-  username: {
-    fontSize: hp(1.9),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  timestamp: {
-    fontSize: hp(1.4),
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  postImage: {
-    width: '100%',
-    height: wp(100),
-    backgroundColor: '#f0f0f0',
-  },
-  actionsContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-  },
-  leftActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  actionButton: {
-    marginRight: wp(4),
-    padding: wp(1),
-  },
-  likesContainer: {
-    paddingHorizontal: wp(4),
-    paddingBottom: hp(1),
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  likesText: {
-    fontSize: hp(1.7),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  likesPreview: {
-    flexDirection: 'row',
-    marginLeft: wp(2),
-    alignItems: 'center',
-  },
-  likeAvatarWrapper: {
-    borderWidth: 2,
-    borderColor: '#fff',
-    borderRadius: 10,
-  },
-  captionContainer: {
-    paddingHorizontal: wp(4),
-    paddingBottom: hp(2),
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-  },
-  captionUsername: {
-    fontSize: hp(1.7),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  captionText: {
-    fontSize: hp(1.7),
-    color: theme.colors.text,
-    lineHeight: hp(2.4),
-  },
-  commentsSection: {
-    paddingHorizontal: wp(4),
-    paddingTop: hp(2),
-    paddingBottom: hp(10),
-  },
-  commentsTitle: {
-    fontSize: hp(1.9),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-    marginBottom: hp(2),
-  },
-  commentItem: {
-    flexDirection: 'row',
-    marginBottom: hp(2),
-  },
-  commentContent: {
-    flex: 1,
-    marginLeft: wp(3),
-  },
-  commentHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  commentUsername: {
-    fontSize: hp(1.6),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginRight: wp(2),
-  },
-  commentTime: {
-    fontSize: hp(1.4),
-    color: theme.colors.textLight,
-  },
-  commentText: {
-    fontSize: hp(1.6),
-    color: theme.colors.text,
-    lineHeight: hp(2.2),
-  },
-  noComments: {
-    fontSize: hp(1.6),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-    paddingVertical: hp(3),
-  },
-  commentInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-    borderTopWidth: 1,
-    borderTopColor: '#efefef',
-    backgroundColor: '#fff',
-  },
-  commentInput: {
-    flex: 1,
-    marginHorizontal: wp(3),
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1),
-    backgroundColor: '#f0f0f0',
-    borderRadius: theme.radius.xl,
-    fontSize: hp(1.7),
-    color: theme.colors.text,
-    maxHeight: hp(10),
-  },
-  sendButton: {
-    padding: wp(2),
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderTopLeftRadius: theme.radius.xxl,
-    borderTopRightRadius: theme.radius.xxl,
-    maxHeight: hp(70),
-    paddingBottom: hp(4),
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(2),
-    borderBottomWidth: 1,
-    borderBottomColor: '#efefef',
-  },
-  modalTitle: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  likedUserItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(1.5),
-  },
-  likedUserInfo: {
-    marginLeft: wp(3),
-    flex: 1,
-  },
-  likedUserName: {
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  likedUserUsername: {
-    fontSize: hp(1.5),
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-});
+

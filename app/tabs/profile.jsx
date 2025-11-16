@@ -1,37 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
-import { decode } from 'base64-arraybuffer';
-import * as FileSystem from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
-  ActivityIndicator,
-  Alert,
-  Dimensions,
-  FlatList,
-  Image,
-  Modal,
-  Platform,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Dimensions,
+    FlatList,
+    Image,
+    Modal,
+    Platform,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import ConversationModal from '../../components/ConversationModal';
+import EditProfileModal from '../../components/EditProfileModal';
 import FloatingMessageButton from '../../components/FloatingMessageButton';
 import MessageModal from '../../components/MessageModal';
-import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
 import { useAuthStore } from '../../stores/auth';
 import { useFollowStore } from '../../stores/followStore';
 import { useMessageStore } from '../../stores/messageStore';
+import { useThemeStore } from '../../stores/themeStore';
 import { subscribeToMultipleTables, supabase } from '../../utils/supabase';
+import { uploadImage } from '../../utils/uploadImage';
 
 const { width } = Dimensions.get('window');
 const GRID_ITEM_SIZE = (width - 6) / 3; // 3 columns with 2px gaps
 
-// Avatar component with upload capability
-const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false }) => {
+// Avatar component with upload capability (themed via props)
+const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false, colors, theme }) => {
   const initials = userName
     ?.split(' ')
     .map(n => n[0])
@@ -46,7 +46,15 @@ const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false }) 
       disabled={uploading}
       style={{ position: 'relative' }}
     >
-      <View style={[styles.avatar, { width: size, height: size, borderRadius: size / 2 }]}>
+      <View style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: colors.primary,
+        justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'hidden',
+      }}>
         {avatarUrl ? (
           <Image
             source={{ uri: avatarUrl }}
@@ -54,49 +62,71 @@ const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false }) 
             resizeMode="cover"
           />
         ) : (
-          <Text style={[styles.avatarText, { fontSize: size * 0.35 }]}>{initials}</Text>
+          <Text style={{ color: '#fff', fontWeight: theme?.fonts?.bold || '700', fontSize: size * 0.35 }}>{initials}</Text>
         )}
         {uploading && (
-          <View style={styles.avatarUploadingOverlay}>
+          <View style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            justifyContent: 'center',
+            alignItems: 'center',
+            borderRadius: 999,
+          }}>
             <ActivityIndicator size="small" color="#fff" />
           </View>
         )}
       </View>
       {/* Plus Icon */}
-      <View style={[styles.avatarPlusIcon, { width: size * 0.3, height: size * 0.3 }]}>
+      <View style={{
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        width: size * 0.3,
+        height: size * 0.3,
+        backgroundColor: colors.primary,
+        borderRadius: 999,
+        borderWidth: 2,
+        borderColor: colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+      }}>
         <Ionicons name="add" size={size * 0.2} color="#fff" />
       </View>
     </TouchableOpacity>
   );
 };
 
-// Grid post item
-const GridPostItem = ({ post, onPress }) => (
+// Grid post item (themed via props)
+const GridPostItem = ({ post, onPress, colors }) => (
   <TouchableOpacity
-    style={styles.gridItem}
+    style={{ width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE, marginBottom: 2 }}
     onPress={() => onPress(post)}
     activeOpacity={0.9}
   >
     {post.image_url ? (
       <Image
         source={{ uri: post.image_url }}
-        style={styles.gridImage}
+        style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight }}
         resizeMode="cover"
       />
     ) : (
-      <View style={styles.gridImagePlaceholder}>
-        <Ionicons name="image-outline" size={40} color="#999" />
+      <View style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }}>
+        <Ionicons name="image-outline" size={40} color={colors.textLight} />
       </View>
     )}
   </TouchableOpacity>
 );
 
-// Empty state
-const EmptyState = () => (
-  <View style={styles.emptyContainer}>
-    <Ionicons name="images-outline" size={80} color="#999" />
-    <Text style={styles.emptyTitle}>No Posts Yet</Text>
-    <Text style={styles.emptyText}>
+// Empty state (themed via props)
+const EmptyState = ({ colors, theme }) => (
+  <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: hp(8), paddingHorizontal: wp(8), backgroundColor: colors.background }}>
+    <Ionicons name="images-outline" size={80} color={colors.textLight} />
+    <Text style={{ fontSize: hp(2.7), fontWeight: theme?.fonts?.semibold || '600', color: colors.text, marginTop: hp(2), marginBottom: hp(1) }}>No Posts Yet</Text>
+    <Text style={{ fontSize: hp(1.8), color: colors.textLight, textAlign: 'center', lineHeight: hp(2.5) }}>
       Share your first moment to see it here
     </Text>
   </View>
@@ -107,10 +137,63 @@ export default function Profile() {
   const { user, profile, logout, session } = useAuthStore();
   const followStore = useFollowStore();
   const messageStore = useMessageStore();
+  const { theme } = useThemeStore();
+  const colors = theme.colors;
+  const styles = useMemo(() => StyleSheet.create({
+    container: { flex: 1, backgroundColor: colors.background },
+    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: wp(4), paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3), paddingBottom: hp(1.5), borderBottomWidth: 1, borderBottomColor: colors.border },
+    headerTitle: { fontSize: hp(2.5), fontWeight: theme.fonts.semibold, color: colors.text },
+    logoutButton: { padding: wp(1) },
+    loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
+    listContent: { flexGrow: 1, backgroundColor: colors.background },
+
+    // Profile Section
+    profileSection: { flexDirection: 'row', paddingHorizontal: wp(4), paddingVertical: hp(2.5), alignItems: 'center', backgroundColor: colors.background },
+    statsContainer: { flex: 1, flexDirection: 'row', justifyContent: 'space-around', marginLeft: wp(5) },
+    statItem: { alignItems: 'center' },
+    statNumber: { fontSize: hp(2.2), fontWeight: theme.fonts.bold, color: colors.text },
+    statLabel: { fontSize: hp(1.6), color: colors.textLight, marginTop: hp(0.5) },
+
+    // User Details
+    userDetails: { paddingHorizontal: wp(4), paddingBottom: hp(1.5), backgroundColor: colors.background },
+    userName: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: colors.text, marginBottom: hp(0.3) },
+    userEmail: { fontSize: hp(1.8), color: colors.textLight, marginBottom: hp(1) },
+    userBio: { fontSize: hp(1.8), color: colors.text, lineHeight: hp(2.3) },
+
+    // Edit Button
+    editButton: { marginHorizontal: wp(4), marginBottom: hp(2), paddingVertical: hp(1), borderRadius: theme.radius.md, borderWidth: 1, borderColor: colors.border, backgroundColor: colors.surface, alignItems: 'center' },
+    editButtonText: { fontSize: hp(1.8), fontWeight: theme.fonts.semibold },
+
+    // Grid Header
+    gridHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: hp(1.5), borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background, gap: wp(2) },
+    gridHeaderText: { fontSize: hp(1.5), fontWeight: theme.fonts.semibold, color: colors.text, letterSpacing: 1 },
+
+    // Posts Grid
+    gridRow: { gap: 2, backgroundColor: colors.background },
+
+    // Empty State
+    emptyContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: hp(8), paddingHorizontal: wp(8), backgroundColor: colors.background },
+    emptyTitle: { fontSize: hp(2.7), fontWeight: theme.fonts.semibold, color: colors.text, marginTop: hp(2), marginBottom: hp(1) },
+    emptyText: { fontSize: hp(1.8), color: colors.textLight, textAlign: 'center', lineHeight: hp(2.5) },
+
+    // Logout Modal
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.7)', justifyContent: 'center', alignItems: 'center', padding: wp(5) },
+    modalContent: { backgroundColor: colors.surface, borderRadius: theme.radius.xl, padding: wp(6), width: '100%', maxWidth: wp(85), alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5 },
+    modalCloseButton: { position: 'absolute', top: hp(1.5), right: wp(3), padding: wp(2), zIndex: 1 },
+    modalIconContainer: { marginTop: hp(1), marginBottom: hp(2) },
+    modalTitle: { fontSize: hp(3), fontWeight: theme.fonts.bold, color: colors.text, marginBottom: hp(1) },
+    modalMessage: { fontSize: hp(2), color: colors.textLight, textAlign: 'center', marginBottom: hp(3), lineHeight: hp(2.7) },
+    modalButtons: { flexDirection: 'row', gap: wp(3), width: '100%' },
+    modalCancelButton: { flex: 1, paddingVertical: hp(1.7), borderRadius: theme.radius.lg, backgroundColor: colors.surfaceLight, alignItems: 'center' },
+    modalCancelButtonText: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: colors.text },
+    modalConfirmButton: { flex: 1, paddingVertical: hp(1.7), borderRadius: theme.radius.lg, backgroundColor: theme.colors.rose, alignItems: 'center' },
+    modalConfirmButtonText: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: '#fff' },
+  }), [colors, theme]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  const [editProfileModalVisible, setEditProfileModalVisible] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [localAvatarUrl, setLocalAvatarUrl] = useState(profile?.avatar_url);
 
@@ -139,12 +222,24 @@ export default function Profile() {
       {
         table: 'follows',
         onInsert: (newFollow) => {
+          // ✅ With REPLICA IDENTITY FULL, all columns are guaranteed
+          if (!newFollow?.following_id || !newFollow?.follower_id) {
+            console.warn('⚠️ Follow insert event missing IDs:', newFollow);
+            return;
+          }
+
           // Update counts if this follow involves the current user
           if (newFollow.following_id === user.id || newFollow.follower_id === user.id) {
             followStore.handleFollowInsert(newFollow);
           }
         },
         onDelete: (deletedFollow) => {
+          // ✅ With REPLICA IDENTITY FULL, IDs are now included in delete events
+          if (!deletedFollow?.following_id || !deletedFollow?.follower_id) {
+            console.warn('⚠️ Follow delete event missing IDs:', deletedFollow);
+            return;
+          }
+
           // Update counts if this unfollow involves the current user
           if (deletedFollow.following_id === user.id || deletedFollow.follower_id === user.id) {
             followStore.handleFollowDelete(deletedFollow);
@@ -224,14 +319,23 @@ export default function Profile() {
 
       // Launch image picker
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        mediaTypes: ImagePicker.MediaTypeOptions?.Images || 'images',
         allowsEditing: true,
         aspect: [1, 1],
         quality: 0.8,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        await uploadAvatar(result.assets[0].uri);
+      // Check if user canceled or result is invalid
+      if (!result || result.canceled || result.cancelled) {
+        console.log('User cancelled image picker');
+        return;
+      }
+
+      if (result.assets?.[0]) {
+        await uploadAvatar(result.assets[0]);
+      } else if (result.uri) {
+        // Fallback for older API versions
+        await uploadAvatar({ uri: result.uri, type: result.type });
       }
     } catch (error) {
       console.error('Error picking image:', error);
@@ -239,73 +343,28 @@ export default function Profile() {
     }
   };
 
-  const uploadAvatar = async (imageUri) => {
+  const uploadAvatar = async (asset) => {
     if (!user?.id) return;
+
+    // Validate asset object
+    if (!asset || !asset.uri) {
+      console.error('Invalid asset object:', asset);
+      Alert.alert('Error', 'Invalid image selected. Please try again.');
+      return;
+    }
 
     try {
       setUploadingAvatar(true);
-
-      // Get file extension
-      const fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
-      const fileName = `${user.id}-${Date.now()}.${fileExt}`;
-      const filePath = fileName;
-
-      let uploadData;
-
-      if (Platform.OS === 'web') {
-        // For web: use fetch to get blob
-        const response = await fetch(imageUri);
-        const blob = await response.blob();
-        uploadData = blob;
-      } else {
-        // For native: use FileSystem + base64-arraybuffer
-        // Use 'base64' string literal instead of FileSystem.EncodingType.Base64
-        // which may be undefined in production builds
-        try {
-          const base64 = await FileSystem.readAsStringAsync(imageUri, {
-            encoding: 'base64',
-          });
-          uploadData = decode(base64);
-        } catch (fileError) {
-          console.error('FileSystem read error, falling back to fetch blob:', fileError);
-          // Fallback to fetch if FileSystem fails
-          const response = await fetch(imageUri);
-          uploadData = await response.blob();
-        }
-      }
-
-      // Delete old avatar if exists
-      if (profile?.avatar_url) {
-        try {
-          const oldFileName = profile.avatar_url.split('/').pop();
-          if (oldFileName) {
-            await supabase.storage
-              .from('avatars')
-              .remove([oldFileName]);
-          }
-        } catch (error) {
-          console.log('No old avatar to delete or error deleting:', error);
-        }
-      }
-
-      // Upload to Supabase Storage
-      const { data, error } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, uploadData, {
-          contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
-          cacheControl: '3600',
-          upsert: false,
-        });
-
-      if (error) {
-        console.error('Upload error:', error);
-        throw error;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
+      const imageUri = asset.uri;
+      // Derive extension from asset metadata or URI
+      let fileExt = 'jpg';
+      if (asset.fileName) fileExt = asset.fileName.split('.').pop()?.toLowerCase() || 'jpg';
+      else if (asset.type) fileExt = asset.type.split('/').pop()?.toLowerCase() || 'jpg';
+      else if (imageUri && imageUri.includes('.')) fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
+      if (fileExt === 'jpeg') fileExt = 'jpg';
+      // Consistent avatar path for upsert overwrite
+      const filePath = `${user.id}/avatar.${fileExt}`;
+      const publicUrl = await uploadImage(imageUri, 'avatars', filePath);
 
       // Update profile in database
       const { error: updateError } = await supabase
@@ -335,7 +394,8 @@ export default function Profile() {
       Alert.alert('Success', 'Avatar updated successfully!');
     } catch (error) {
       console.error('Error uploading avatar:', error);
-      Alert.alert('Error', 'Failed to upload avatar. Please try again.');
+      let msg = 'Failed to upload avatar. ' + (error.message || 'Please try again.');
+      Alert.alert('Upload Error', msg);
     } finally {
       setUploadingAvatar(false);
     }
@@ -381,6 +441,8 @@ export default function Profile() {
                   size={80}
                   onPress={handleAvatarPress}
                   uploading={uploadingAvatar}
+                  colors={colors}
+                  theme={theme}
                 />
 
                 <View style={styles.statsContainer}>
@@ -410,28 +472,28 @@ export default function Profile() {
 
               {/* Edit Profile Button */}
               <TouchableOpacity
-                style={styles.editButton}
-                onPress={() => Alert.alert('Edit Profile', 'Coming soon!')}
+                style={[styles.editButton, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                onPress={() => setEditProfileModalVisible(true)}
               >
-                <Text style={styles.editButtonText}>Edit Profile</Text>
+                <Text style={[styles.editButtonText, { color: colors.text }]}>Edit Profile</Text>
               </TouchableOpacity>
 
               {/* Posts Grid Header */}
               <View style={styles.gridHeader}>
-                <Ionicons name="grid-outline" size={24} color="#000" />
+                <Ionicons name="grid-outline" size={24} color={colors.text} />
                 <Text style={styles.gridHeaderText}>POSTS</Text>
               </View>
             </>
           }
           data={posts}
           renderItem={({ item }) => (
-            <GridPostItem post={item} onPress={handlePostPress} />
+            <GridPostItem post={item} onPress={handlePostPress} colors={colors} />
           )}
           keyExtractor={item => item.id}
           numColumns={3}
           columnWrapperStyle={styles.gridRow}
           contentContainerStyle={styles.listContent}
-          ListEmptyComponent={<EmptyState />}
+          ListEmptyComponent={<EmptyState colors={colors} theme={theme} />}
           refreshing={refreshing}
           onRefresh={onRefresh}
           showsVerticalScrollIndicator={false}
@@ -502,275 +564,13 @@ export default function Profile() {
         visible={messageStore.messageModalVisible}
         onClose={() => messageStore.closeAllModals()}
       />
+
+      {/* Edit Profile Modal */}
+      <EditProfileModal
+        visible={editProfileModalVisible}
+        onClose={() => setEditProfileModalVisible(false)}
+      />
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: wp(4),
-    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3),
-    paddingBottom: hp(1.5),
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.gray,
-  },
-  headerTitle: {
-    fontSize: hp(2.5),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  logoutButton: {
-    padding: wp(1),
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  listContent: {
-    flexGrow: 1,
-  },
-
-  // Profile Section
-  profileSection: {
-    flexDirection: 'row',
-    paddingHorizontal: wp(4),
-    paddingVertical: hp(2.5),
-    alignItems: 'center',
-  },
-  avatar: {
-    backgroundColor: theme.colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  avatarText: {
-    color: '#fff',
-    fontWeight: theme.fonts.bold,
-  },
-  avatarUploadingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 999,
-  },
-  avatarPlusIcon: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    backgroundColor: theme.colors.primary,
-    borderRadius: 999,
-    borderWidth: 2,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statsContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginLeft: wp(5),
-  },
-  statItem: {
-    alignItems: 'center',
-  },
-  statNumber: {
-    fontSize: hp(2.2),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-  },
-  statLabel: {
-    fontSize: hp(1.6),
-    color: theme.colors.textLight,
-    marginTop: hp(0.5),
-  },
-
-  // User Details
-  userDetails: {
-    paddingHorizontal: wp(4),
-    paddingBottom: hp(1.5),
-  },
-  userName: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginBottom: hp(0.3),
-  },
-  userEmail: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-    marginBottom: hp(1),
-  },
-  userBio: {
-    fontSize: hp(1.8),
-    color: theme.colors.text,
-    lineHeight: hp(2.3),
-  },
-
-  // Edit Button
-  editButton: {
-    marginHorizontal: wp(4),
-    marginBottom: hp(2),
-    paddingVertical: hp(1),
-    borderRadius: theme.radius.md,
-    borderWidth: 1,
-    borderColor: theme.colors.gray,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-  },
-  editButtonText: {
-    fontSize: hp(1.8),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-
-  // Grid Header
-  gridHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: hp(1.5),
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.gray,
-    gap: wp(2),
-  },
-  gridHeaderText: {
-    fontSize: hp(1.5),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    letterSpacing: 1,
-  },
-
-  // Posts Grid
-  gridRow: {
-    gap: 2,
-  },
-  gridItem: {
-    width: GRID_ITEM_SIZE,
-    height: GRID_ITEM_SIZE,
-    marginBottom: 2,
-  },
-  gridImage: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.colors.gray,
-  },
-  gridImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: theme.colors.gray,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-
-  // Empty State
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: hp(8),
-    paddingHorizontal: wp(8),
-  },
-  emptyTitle: {
-    fontSize: hp(2.7),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-    marginTop: hp(2),
-    marginBottom: hp(1),
-  },
-  emptyText: {
-    fontSize: hp(1.8),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-  },
-
-  // Logout Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: wp(5),
-  },
-  modalContent: {
-    backgroundColor: '#fff',
-    borderRadius: theme.radius.xl,
-    padding: wp(6),
-    width: '100%',
-    maxWidth: wp(85),
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  modalCloseButton: {
-    position: 'absolute',
-    top: hp(1.5),
-    right: wp(3),
-    padding: wp(2),
-    zIndex: 1,
-  },
-  modalIconContainer: {
-    marginTop: hp(1),
-    marginBottom: hp(2),
-  },
-  modalTitle: {
-    fontSize: hp(3),
-    fontWeight: theme.fonts.bold,
-    color: theme.colors.text,
-    marginBottom: hp(1),
-  },
-  modalMessage: {
-    fontSize: hp(2),
-    color: theme.colors.textLight,
-    textAlign: 'center',
-    marginBottom: hp(3),
-    lineHeight: hp(2.7),
-  },
-  modalButtons: {
-    flexDirection: 'row',
-    gap: wp(3),
-    width: '100%',
-  },
-  modalCancelButton: {
-    flex: 1,
-    paddingVertical: hp(1.7),
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.gray,
-    alignItems: 'center',
-  },
-  modalCancelButtonText: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: theme.colors.text,
-  },
-  modalConfirmButton: {
-    flex: 1,
-    paddingVertical: hp(1.7),
-    borderRadius: theme.radius.lg,
-    backgroundColor: theme.colors.rose,
-    alignItems: 'center',
-  },
-  modalConfirmButtonText: {
-    fontSize: hp(2),
-    fontWeight: theme.fonts.semibold,
-    color: '#fff',
-  },
-});
