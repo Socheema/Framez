@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
+import { Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -231,15 +232,27 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
         </TouchableOpacity>
       </View>
 
-      {/* Image */}
+      {/* Media (Image or Video) */}
       {post.image_url && (
-        <Image
-          source={{ uri: post.image_url }}
-          style={styles.postImage}
-          contentFit="cover"
-          transition={200}
-          placeholder={null}
-        />
+        /\.mp4$/i.test(post.image_url) ? (
+          <Video
+            source={{ uri: post.image_url }}
+            style={styles.postImage}
+            resizeMode="cover"
+            shouldPlay
+            isMuted
+            useNativeControls
+            isLooping={false}
+          />
+        ) : (
+          <Image
+            source={{ uri: post.image_url }}
+            style={styles.postImage}
+            contentFit="cover"
+            transition={200}
+            placeholder={null}
+          />
+        )
       )}
 
       {/* Actions */}
