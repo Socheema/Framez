@@ -101,25 +101,36 @@ const Avatar = ({ userName, avatarUrl, size = 80, onPress, uploading = false, co
 };
 
 // Grid post item (themed via props)
-const GridPostItem = ({ post, onPress, colors }) => (
-  <TouchableOpacity
-    style={{ width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE, marginBottom: 2 }}
-    onPress={() => onPress(post)}
-    activeOpacity={0.9}
-  >
-    {post.image_url ? (
-      <Image
-        source={{ uri: post.image_url }}
-        style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight }}
-        resizeMode="cover"
-      />
-    ) : (
-      <View style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }}>
-        <Ionicons name="image-outline" size={40} color={colors.textLight} />
-      </View>
-    )}
-  </TouchableOpacity>
-);
+const GridPostItem = ({ post, onPress, colors }) => {
+  const isVideo = /\.mp4$/i.test(post.image_url || '');
+  
+  return (
+    <TouchableOpacity
+      style={{ width: GRID_ITEM_SIZE, height: GRID_ITEM_SIZE, marginBottom: 2 }}
+      onPress={() => onPress(post)}
+      activeOpacity={0.9}
+    >
+      {post.image_url ? (
+        <View style={{ width: '100%', height: '100%', position: 'relative' }}>
+          <Image
+            source={{ uri: post.image_url }}
+            style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight }}
+            resizeMode="cover"
+          />
+          {isVideo && (
+            <View style={{ position: 'absolute', top: 8, right: 8, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 4, padding: 4 }}>
+              <Ionicons name="videocam" size={16} color="#fff" />
+            </View>
+          )}
+        </View>
+      ) : (
+        <View style={{ width: '100%', height: '100%', backgroundColor: colors.surfaceLight, justifyContent: 'center', alignItems: 'center' }}>
+          <Ionicons name="image-outline" size={40} color={colors.textLight} />
+        </View>
+      )}
+    </TouchableOpacity>
+  );
+};
 
 // Empty state (themed via props)
 const EmptyState = ({ colors, theme }) => (

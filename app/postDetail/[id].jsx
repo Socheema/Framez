@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 import { Image } from 'expo-image';
+import { Video } from 'expo-av';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -773,14 +774,26 @@ export default function PostDetail() {
           </View>
         </TouchableOpacity>
 
-        {/* Post Image */}
+        {/* Post Image/Video */}
         {post.image_url && (
-          <Image
-            source={{ uri: post.image_url }}
-            style={styles.postImage}
-            contentFit="cover"
-            transition={200}
-          />
+          /\.mp4$/i.test(post.image_url) ? (
+            <Video
+              source={{ uri: post.image_url }}
+              style={styles.postImage}
+              resizeMode="cover"
+              shouldPlay={true}
+              isMuted={true}
+              useNativeControls={true}
+              isLooping={false}
+            />
+          ) : (
+            <Image
+              source={{ uri: post.image_url }}
+              style={styles.postImage}
+              contentFit="cover"
+              transition={200}
+            />
+          )
         )}
 
         {/* Actions */}

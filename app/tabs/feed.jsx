@@ -239,9 +239,9 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
             source={{ uri: post.image_url }}
             style={styles.postImage}
             resizeMode="cover"
-            shouldPlay
-            isMuted
-            useNativeControls
+            shouldPlay={true}
+            isMuted={true}
+            useNativeControls={true}
             isLooping={false}
           />
         ) : (
