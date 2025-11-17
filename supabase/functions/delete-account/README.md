@@ -1,11 +1,21 @@
 # delete-account (Supabase Edge Function)
 
-Deletes the currently authenticated user from Supabase Auth using the service role.
+Cascade deletes a user's entire footprint (DB rows + storage) and then removes the Auth user. Runs with the service role after verifying the caller.
 
 ## What it does
 - Validates the caller using the bearer token from the request (must be the same user as `userId` in the body)
-- Uses the service-role key to call `auth.admin.deleteUser(userId)`
-- Returns `{ success: true }` on success
+- Deletes related data in this order:
+  1. messages sent by the user
+  2. messages in conversations involving the user
+  3. conversations involving the user
+  4. likes by the user
+  5. comments by the user
+  6. follows where the user is follower or following
+  7. gathers post image paths, deletes posts
+  8. gathers avatar path, deletes profile row
+  9. removes storage objects from `posts` and `avatars` buckets
+  10. deletes the auth user (`auth.admin.deleteUser`)
+- Returns a structured JSON with per-table counts, steps taken, and any errors. If some steps fail, returns status 207 and includes `errors`.
 
 ## Deploy
 
@@ -45,10 +55,23 @@ supabase functions serve --env-file .env.local --no-verify-jwt
 
 ## Invoke (client)
 
-The app already calls this function from `EditProfileModal`:
-
 ```js
-await supabase.functions.invoke('delete-account', { body: { userId } })
+const { data, error } = await supabase.functions.invoke('delete-account', {
+  body: { userId: user.id }
+});
+
+if (error) {
+  // Show a friendly error
+}
+
+// data has shape:
+// {
+//   userId: '...',
+//   success: boolean,
+//   counts: { likes?: number, comments?: number, ... },
+//   steps: [ { table?: string, deleted?: number } | { bucket?: string, removed?: number } | { auth: 'user_deleted' } ],
+//   errors: [ { table?: string, bucket?: string, step?: string, message: string } ]
+// }
 ```
 
-The request must include a valid Authorization bearer token (handled by the Supabase JS client).
+The request must include a valid Authorization bearer token (Supabase JS adds it automatically for authenticated users).

@@ -1,15 +1,13 @@
-
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 // CORS helper
-const corsHeaders = {
+const corsHeaders: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+serve(async (req: Request): Promise<Response> => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: { ...corsHeaders } });
@@ -26,7 +24,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization") || "";
     const jwt = authHeader.replace("Bearer ", "");
 
-    const { userId } = await req.json().catch(() => ({ userId: undefined }));
+    const { userId } = await req.json().catch(() => ({ userId: undefined })) as { userId?: string };
     if (!userId) {
       return new Response(JSON.stringify({ error: "Missing userId" }), {
         status: 400,
@@ -34,10 +32,10 @@ serve(async (req) => {
       });
     }
 
-  // Read secrets with SB_* (recommended) and fall back to SUPABASE_* for compatibility
-  const SUPABASE_URL = Deno.env.get("SB_URL") ?? Deno.env.get("SUPABASE_URL");
-  const SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  const ANON_KEY = Deno.env.get("SB_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
+    // Read secrets with SB_* (recommended) and fall back to SUPABASE_* for compatibility
+    const SUPABASE_URL = Deno.env.get("SB_URL") ?? Deno.env.get("SUPABASE_URL");
+    const SERVICE_ROLE_KEY = Deno.env.get("SB_SERVICE_ROLE_KEY") ?? Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const ANON_KEY = Deno.env.get("SB_ANON_KEY") ?? Deno.env.get("SUPABASE_ANON_KEY");
 
     if (!SUPABASE_URL || !SERVICE_ROLE_KEY || !ANON_KEY) {
       return new Response(
@@ -72,7 +70,13 @@ serve(async (req) => {
     });
 
     // Accumulator for results
-    const results = {
+    const results: {
+      userId: string;
+      steps: any[];
+      counts: Record<string, number>;
+      errors: { table?: string; bucket?: string; step?: string; message: string }[];
+      success: boolean;
+    } = {
       userId,
       steps: [],
       counts: {},
@@ -81,127 +85,123 @@ serve(async (req) => {
     };
 
     // Helper to run a counted deletion (pre-count then delete)
-    async function countedDelete(table, filterBuilder) {
+    async function countedDelete(table: string, filterBuilder: <T>(q: any) => any) {
       try {
-        // Count rows first
         const countRes = await filterBuilder(
-          supabaseAdmin.from(table).select('*', { count: 'exact', head: true })
+          supabaseAdmin.from(table).select("*", { count: "exact", head: true })
         );
         if (countRes.error) throw countRes.error;
         const count = countRes.count || 0;
-        // Perform delete
         const deleteRes = await filterBuilder(supabaseAdmin.from(table).delete());
         if (deleteRes.error) throw deleteRes.error;
         results.counts[table] = count;
         results.steps.push({ table, deleted: count });
-      } catch (err) {
-        results.errors.push({ table, message: err.message || 'Unknown error' });
+      } catch (err: any) {
+        results.errors.push({ table, message: err.message || "Unknown error" });
       }
     }
 
     // 1. Gather conversation IDs involving user (for message cleanup)
-    let conversationIds = [];
+    let conversationIds: string[] = [];
     try {
       const convRes = await supabaseAdmin
-        .from('conversations')
-        .select('id')
+        .from("conversations")
+        .select("id")
         .or(`participant_one.eq.${userId},participant_two.eq.${userId}`);
       if (convRes.error) throw convRes.error;
-      conversationIds = (convRes.data || []).map(c => c.id);
-      results.counts['conversations_involved'] = conversationIds.length;
-    } catch (err) {
-      results.errors.push({ step: 'fetch_conversations', message: err.message || 'Failed to fetch conversations' });
+      conversationIds = (convRes.data || []).map((c: any) => c.id);
+      results.counts["conversations_involved"] = conversationIds.length;
+    } catch (err: any) {
+      results.errors.push({ step: "fetch_conversations", message: err.message || "Failed to fetch conversations" });
     }
 
     // 2. Delete messages sent by user
-    await countedDelete('messages', (q) => q.eq('sender_id', userId));
+    await countedDelete("messages", (q) => q.eq("sender_id", userId));
 
-    // 3. Delete messages in conversations where user was participant (remaining messages from other users)
+    // 3. Delete messages in conversations where user was participant (remaining messages from others)
     if (conversationIds.length) {
-      await countedDelete('messages', (q) => q.in('conversation_id', conversationIds));
+      await countedDelete("messages", (q) => q.in("conversation_id", conversationIds));
     }
 
     // 4. Delete conversations involving user
-    await countedDelete('conversations', (q) => q.or(`participant_one.eq.${userId},participant_two.eq.${userId}`));
+    await countedDelete("conversations", (q) => q.or(`participant_one.eq.${userId},participant_two.eq.${userId}`));
 
     // 5. Delete likes by user
-    await countedDelete('likes', (q) => q.eq('user_id', userId));
+    await countedDelete("likes", (q) => q.eq("user_id", userId));
     // 6. Delete comments by user
-    await countedDelete('comments', (q) => q.eq('user_id', userId));
+    await countedDelete("comments", (q) => q.eq("user_id", userId));
     // 7. Delete follows where user is follower or following
-    await countedDelete('follows', (q) => q.or(`follower_id.eq.${userId},following_id.eq.${userId}`));
+    await countedDelete("follows", (q) => q.or(`follower_id.eq.${userId},following_id.eq.${userId}`));
+
     // 8. Collect post image paths & delete posts
-    let postImagePaths = [];
+    let postImagePaths: string[] = [];
     try {
       const postsRes = await supabaseAdmin
-        .from('posts')
-        .select('id,image_url')
-        .eq('user_id', userId);
+        .from("posts")
+        .select("id,image_url")
+        .eq("user_id", userId);
       if (postsRes.error) throw postsRes.error;
       postImagePaths = (postsRes.data || [])
-        .map(p => p.image_url)
+        .map((p: any) => p.image_url)
         .filter(Boolean)
-        .map(url => {
-          // Expect pattern .../storage/v1/object/public/posts/<path>
-          const marker = '/public/posts/';
-            const idx = url.indexOf(marker);
-            return idx !== -1 ? url.substring(idx + marker.length) : null;
+        .map((url: string) => {
+          const marker = "/public/posts/";
+          const idx = url.indexOf(marker);
+          return idx !== -1 ? url.substring(idx + marker.length) : null;
         })
-        .filter(Boolean);
-      results.counts['post_images_found'] = postImagePaths.length;
-    } catch (err) {
-      results.errors.push({ step: 'fetch_post_images', message: err.message || 'Failed to gather post images' });
+        .filter(Boolean) as string[];
+      results.counts["post_images_found"] = postImagePaths.length;
+    } catch (err: any) {
+      results.errors.push({ step: "fetch_post_images", message: err.message || "Failed to gather post images" });
     }
-    await countedDelete('posts', (q) => q.eq('user_id', userId));
+    await countedDelete("posts", (q) => q.eq("user_id", userId));
 
-    // 9. Fetch avatar path (profiles) then delete profile row
-    let avatarPath = null;
+    // 9. Fetch avatar path then delete profile row
+    let avatarPath: string | null = null;
     try {
       const profileRes = await supabaseAdmin
-        .from('profiles')
-        .select('avatar_url')
-        .eq('id', userId)
+        .from("profiles")
+        .select("avatar_url")
+        .eq("id", userId)
         .single();
       if (!profileRes.error && profileRes.data?.avatar_url) {
-        const marker = '/public/avatars/';
+        const marker = "/public/avatars/";
         const idx = profileRes.data.avatar_url.indexOf(marker);
         if (idx !== -1) avatarPath = profileRes.data.avatar_url.substring(idx + marker.length);
       }
     } catch (_) {}
-    await countedDelete('profiles', (q) => q.eq('id', userId));
+    await countedDelete("profiles", (q) => q.eq("id", userId));
 
-    // 10. Storage cleanup (best effort, non-blocking errors captured)
-    async function removeStorageObjects(bucket, paths) {
+    // 10. Storage cleanup
+    async function removeStorageObjects(bucket: string, paths: string[]) {
       if (!paths.length) return;
       try {
         const { error } = await supabaseAdmin.storage.from(bucket).remove(paths);
         if (error) throw error;
         results.steps.push({ bucket, removed: paths.length });
-      } catch (err) {
-        results.errors.push({ bucket, message: err.message || 'Failed to remove objects' });
+      } catch (err: any) {
+        results.errors.push({ bucket, message: err.message || "Failed to remove objects" });
       }
     }
-    // Post images
-    await removeStorageObjects('posts', postImagePaths);
-    // Avatar (single path)
-    if (avatarPath) await removeStorageObjects('avatars', [avatarPath]);
+    await removeStorageObjects("posts", postImagePaths);
+    if (avatarPath) await removeStorageObjects("avatars", [avatarPath]);
 
-    // 11. Finally delete auth user
+    // 11. Delete auth user
     try {
       const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
       if (deleteError) throw deleteError;
-      results.steps.push({ auth: 'user_deleted' });
+      results.steps.push({ auth: "user_deleted" });
       results.success = true;
-    } catch (err) {
-      results.errors.push({ step: 'auth_delete', message: err.message || 'Failed to delete auth user' });
+    } catch (err: any) {
+      results.errors.push({ step: "auth_delete", message: err.message || "Failed to delete auth user" });
     }
 
-    const status = results.success && results.errors.length === 0 ? 200 : 207; // 207 Multi-Status style
+    const status = results.success && results.errors.length === 0 ? 200 : 207;
     return new Response(JSON.stringify(results), {
       status,
       headers: { "Content-Type": "application/json", ...corsHeaders },
     });
-  } catch (err) {
+  } catch (err: any) {
     return new Response(JSON.stringify({ error: err?.message || "Unexpected error" }), {
       status: 500,
       headers: { "Content-Type": "application/json", ...corsHeaders },

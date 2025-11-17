@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
   Modal,
@@ -144,44 +144,21 @@ export default function EditProfileModal({ visible, onClose }) {
       const userId = user?.id;
       if (!userId) throw new Error('Not authenticated');
 
-      // Delete related user data sequentially (best effort)
-      const tables = [
-        { name: 'likes', filter: { user_id: userId } },
-        { name: 'comments', filter: { user_id: userId } },
-        // follows: delete where user is follower or following
-      ];
-
-      for (const t of tables) {
-        try {
-          await supabase.from(t.name).delete().eq('user_id', t.filter.user_id);
-        } catch (_) {}
+      // Invoke secure Edge Function to cascade delete
+      const { data, error } = await supabase.functions.invoke('delete-account', { body: { userId } });
+      if (error) {
+        throw new Error(error.message || 'Server refused deletion');
       }
 
-      // follows requires OR filter
-      try {
-        await supabase.from('follows').delete().or(`follower_id.eq.${userId},following_id.eq.${userId}`);
-      } catch (_) {}
+      const hadErrors = Array.isArray(data?.errors) && data.errors.length > 0;
+      const title = hadErrors ? 'Account Deleted (Partial)' : 'Account Deleted';
+      const message = hadErrors
+        ? 'Your account was deleted but some cleanup steps reported errors. You can reinstall the app or contact support if issues persist.'
+        : 'Your account and data have been removed.';
 
-      // posts
-      try {
-        await supabase.from('posts').delete().eq('user_id', userId);
-      } catch (_) {}
+      Alert.alert(title, message);
 
-      // profile
-      try {
-        await supabase.from('profiles').delete().eq('id', userId);
-      } catch (_) {}
-
-      // Auth user deletion requires service role; attempt optional Edge Function
-      try {
-        if (supabase.functions) {
-          await supabase.functions.invoke('delete-account', { body: { userId } });
-        }
-      } catch (e) {
-        console.log('Edge function delete-account not available or failed:', e?.message);
-      }
-
-      Alert.alert('Account Deleted', 'Your account data has been removed.');
+      // Logout and redirect
       await logout();
       setShowDeleteConfirm(false);
       onClose?.();
