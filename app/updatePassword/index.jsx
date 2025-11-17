@@ -16,6 +16,7 @@ import Button from '../../components/Button';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
+import { useAuthStore } from '../../stores/auth';
 import { useThemeStore } from '../../stores/themeStore';
 import { supabase } from '../../utils/supabase';
 
@@ -233,6 +234,10 @@ export default function UpdatePassword() {
       // Wait for user to see success message
       await new Promise(resolve => setTimeout(resolve, 1500));
 
+      // Clear the password recovery flag BEFORE signing out
+      const { clearPasswordRecovery } = useAuthStore.getState();
+      clearPasswordRecovery();
+
       // Sign out to clear the recovery session
       await supabase.auth.signOut({ scope: 'local' });
 
@@ -256,16 +261,38 @@ export default function UpdatePassword() {
   const handleCancel = async () => {
     setIsUpdating(true); // Prevent session check
     setPasswordUpdated(true); // Prevent any retries
+    
+    // Clear the password recovery flag FIRST
+    const { clearPasswordRecovery } = useAuthStore.getState();
+    clearPasswordRecovery();
+    
     // Sign out and go back to login
     await supabase.auth.signOut({ scope: 'local' });
+    
+    // Small delay to ensure state updates
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
     router.replace('/login');
   };
 
   const handleBack = async () => {
+    console.log('[UPDATE_PASSWORD] Back button pressed - starting navigation');
     setIsUpdating(true); // Prevent session check
     setPasswordUpdated(true); // Prevent any retries
+    
+    // Clear the password recovery flag FIRST
+    console.log('[UPDATE_PASSWORD] Clearing password recovery flag');
+    const { clearPasswordRecovery } = useAuthStore.getState();
+    clearPasswordRecovery();
+    
     // Sign out and go back to login
+    console.log('[UPDATE_PASSWORD] Signing out');
     await supabase.auth.signOut({ scope: 'local' });
+    
+    // Small delay to ensure state updates
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    console.log('[UPDATE_PASSWORD] Navigating to /login');
     router.replace('/login');
   };
 
