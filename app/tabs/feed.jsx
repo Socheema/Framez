@@ -4,15 +4,15 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    Alert,
-    Dimensions,
-    FlatList,
-    Platform,
-    RefreshControl,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View
+  Alert,
+  Dimensions,
+  FlatList,
+  Platform,
+  RefreshControl,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
 } from 'react-native';
 import Button from '../../components/Button';
 import CommentsModal from '../../components/CommentsModal';
@@ -26,11 +26,11 @@ import { useMessageStore } from '../../stores/messageStore';
 import { usePostsStore } from '../../stores/postStore';
 import { useThemeStore } from '../../stores/themeStore';
 import {
-    fetchAllPosts,
-    getPostLikesCount,
-    hasUserLikedPost,
-    likePost,
-    unlikePost,
+  fetchAllPosts,
+  getPostLikesCount,
+  hasUserLikedPost,
+  likePost,
+  unlikePost,
 } from '../../utils/postsServices';
 import { subscribeToMultipleTables } from '../../utils/supabase';
 
@@ -98,7 +98,7 @@ const EmptyState = React.memo(({ onRefresh, styles }) => (
 ));
 
 // Post card component - Memoized for better performance
-const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, onUserPress, styles }) => {
+const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, onUserPress, styles, colors }) => {
   const [isLiked, setIsLiked] = useState(false);
   const [likesCount, setLikesCount] = useState(post.likes_count || 0);
   const [isLiking, setIsLiking] = useState(false);
@@ -227,7 +227,7 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
           </View>
         </TouchableOpacity>
         <TouchableOpacity style={styles.moreButton} onPress={handleMorePress}>
-          <Ionicons name="ellipsis-horizontal" size={20} color="#262626" />
+          <Ionicons name="ellipsis-horizontal" size={20} color={colors.text} />
         </TouchableOpacity>
       </View>
 
@@ -254,18 +254,18 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
             <Ionicons
               name={isLiked ? 'heart' : 'heart-outline'}
               size={26}
-              color={isLiked ? '#ed4956' : '#262626'}
+              color={isLiked ? theme.colors.rose : colors.text}
             />
           </TouchableOpacity>
 
           {/* Comment Button */}
           <TouchableOpacity style={styles.actionButton} onPress={handleCommentPress}>
-            <Ionicons name="chatbubble-outline" size={24} color="#262626" />
+            <Ionicons name="chatbubble-outline" size={24} color={colors.text} />
           </TouchableOpacity>
 
           {/* Share Button */}
           <TouchableOpacity style={styles.actionButton} onPress={handleSharePress}>
-            <Ionicons name="paper-plane-outline" size={24} color="#262626" />
+            <Ionicons name="paper-plane-outline" size={24} color={colors.text} />
           </TouchableOpacity>
         </View>
 
@@ -274,7 +274,7 @@ const PostCard = React.memo(({ post, currentUserId, onCommentPress, onRefresh, o
           <Ionicons
             name={isSaved ? 'bookmark' : 'bookmark-outline'}
             size={24}
-            color={isSaved ? '#262626' : '#262626'}
+            color={colors.text}
           />
         </TouchableOpacity>
       </View>
@@ -590,6 +590,7 @@ export default function Feed() {
         onRefresh={() => fetchPosts(true)}
         onUserPress={handleUserPress}
         styles={styles}
+        colors={colors}
       />
     );
   }, [user?.id, handleCommentPress, fetchPosts, handleUserPress]);
@@ -863,6 +864,19 @@ export default function Feed() {
       backgroundColor: colors.surfaceLight,
       borderRadius: theme.radius.sm,
     },
+    // Empty state button styles
+    emptyButton: {
+      backgroundColor: colors.primary,
+      paddingVertical: hp(1.4),
+      paddingHorizontal: wp(6),
+      borderRadius: theme.radius.lg,
+      marginTop: hp(1.5),
+    },
+    emptyButtonText: {
+      color: '#fff',
+      fontWeight: theme.fonts.semibold,
+      fontSize: hp(1.8),
+    },
   });
 
   // Error state
@@ -910,8 +924,8 @@ export default function Feed() {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor="#000"
-              colors={['#000']}
+              tintColor={colors.text}
+              colors={[colors.text]}
             />
           }
           ListEmptyComponent={<EmptyState onRefresh={onRefresh} styles={styles} />}
