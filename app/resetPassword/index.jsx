@@ -325,6 +325,14 @@ export default function ResetPassword() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.inner}>
+          {/* Back Button */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={handleCancel}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </TouchableOpacity>
+
           <Text style={styles.logo}>Create New Password</Text>
           <Text style={styles.subtitle}>
             Enter your new password below
@@ -436,6 +444,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: wp(5),
     paddingVertical: hp(3),
+    paddingTop: Platform.OS === 'ios' ? hp(8) : hp(6),
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? hp(8) : hp(3),
+    left: wp(5),
+    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,
