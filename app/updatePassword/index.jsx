@@ -57,6 +57,12 @@ export default function UpdatePassword() {
       paddingVertical: hp(3),
       paddingTop: Platform.OS === 'ios' ? hp(8) : hp(6),
     },
+    backButton: {
+      position: 'absolute',
+      top: Platform.OS === 'ios' ? hp(8) : hp(3),
+      left: wp(5),
+      zIndex: 10,
+    },
     icon: {
       alignSelf: 'center',
       marginBottom: hp(3),
@@ -255,6 +261,14 @@ export default function UpdatePassword() {
     router.replace('/login');
   };
 
+  const handleBack = async () => {
+    setIsUpdating(true); // Prevent session check
+    setPasswordUpdated(true); // Prevent any retries
+    // Sign out and go back to login
+    await supabase.auth.signOut({ scope: 'local' });
+    router.replace('/login');
+  };
+
   if (!isRecoverySession && !message.text) {
     return (
       <ScreenWrapper bg={colors.background}>
@@ -279,6 +293,14 @@ export default function UpdatePassword() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.inner}>
+            {/* Back Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBack}
+            >
+              <Ionicons name="arrow-back" size={24} color={colors.text} />
+            </TouchableOpacity>
+
             <Ionicons name="lock-closed" size={hp(8)} color={theme.colors.primary} style={styles.icon} />
 
             <Text style={styles.logo}>Set New Password</Text>
