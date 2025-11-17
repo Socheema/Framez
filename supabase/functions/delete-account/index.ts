@@ -1,3 +1,7 @@
+// @ts-nocheck
+// This file targets the Supabase Edge Functions (Deno) runtime.
+// The imports below are provided by Deno at runtime and are not resolvable by the local TS language server.
+// Disabling TS checks avoids red squiggles in editors while remaining fully valid for deployment.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
