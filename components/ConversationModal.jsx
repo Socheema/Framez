@@ -60,9 +60,10 @@ const getTimeAgo = (timestamp) => {
 };
 
 // Conversation item component
-const ConversationItem = ({ conversation, onPress, styles }) => {
-  const { otherUser, lastMessage, unreadCount } = conversation;
+const ConversationItem = ({ conversation, onPress, styles, colors }) => {
+  const { otherUser, lastMessage, unread_count } = conversation;
   const userName = otherUser?.full_name || otherUser?.username || 'User';
+  const hasUnread = unread_count > 0;
 
   return (
     <TouchableOpacity
@@ -78,7 +79,13 @@ const ConversationItem = ({ conversation, onPress, styles }) => {
 
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text style={styles.conversationName} numberOfLines={1}>
+          <Text 
+            style={[
+              styles.conversationName,
+              hasUnread && styles.conversationNameUnread
+            ]} 
+            numberOfLines={1}
+          >
             {userName}
           </Text>
           {lastMessage && (
@@ -92,16 +99,16 @@ const ConversationItem = ({ conversation, onPress, styles }) => {
           <Text
             style={[
               styles.conversationMessage,
-              unreadCount > 0 && styles.conversationMessageUnread
+              hasUnread && styles.conversationMessageUnread
             ]}
             numberOfLines={1}
           >
             {lastMessage?.text || 'Start a conversation...'}
           </Text>
-          {unreadCount > 0 && (
+          {hasUnread && (
             <View style={styles.unreadBadge}>
               <Text style={styles.unreadBadgeText}>
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unread_count > 99 ? '99+' : unread_count}
               </Text>
             </View>
           )}
@@ -125,7 +132,7 @@ const EmptyState = ({ colors, styles }) => (
 export default function ConversationModal({ visible, onClose }) {
   const { user } = useAuthStore();
   const messageStore = useMessageStore();
-  const { conversations, loading } = messageStore;
+  const { conversations, loading, suppressImmediateRefresh } = messageStore;
   const { theme: currentTheme } = useThemeStore();
   const colors = currentTheme.colors;
 
@@ -199,6 +206,10 @@ export default function ConversationModal({ visible, onClose }) {
       color: colors.text,
       flex: 1,
     },
+    conversationNameUnread: {
+      fontWeight: theme.fonts.bold,
+      color: colors.text,
+    },
     conversationTime: {
       fontSize: hp(1.6),
       color: colors.textLight,
@@ -251,13 +262,27 @@ export default function ConversationModal({ visible, onClose }) {
 
   useEffect(() => {
     if (visible && user?.id) {
-      // Load conversations when modal opens
+      // If store signalled suppression (coming from message modal back), skip immediate reload
+      if (messageStore.suppressImmediateRefresh) {
+        console.debug('[ConversationModal] suppressImmediateRefresh is true, skipping loadConversations');
+        return;
+      }
+      // Reload conversations when modal opens to get fresh unread counts
+      console.debug('[ConversationModal] visible; calling loadConversations for user', user.id);
       messageStore.loadConversations(user.id);
     }
-  }, [visible, user?.id]);
+  }, [visible, user?.id, messageStore.suppressImmediateRefresh]);
+
+  // Debug: log conversations when they change to track flicker behavior
+  useEffect(() => {
+    if (visible) {
+      console.debug('[ConversationModal] conversations changed:', messageStore.conversations);
+    }
+  }, [messageStore.conversations, visible]);
 
   const handleConversationPress = (conversation) => {
-    messageStore.openConversation(conversation);
+    // Pass user.id so store can immediately mark messages read without relying on embedded otherUser
+    messageStore.openConversation(conversation, user?.id);
   };
 
   return (
@@ -286,6 +311,7 @@ export default function ConversationModal({ visible, onClose }) {
               conversation={item}
               onPress={handleConversationPress}
               styles={styles}
+              colors={colors}
             />
           )}
           contentContainerStyle={

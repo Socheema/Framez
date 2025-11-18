@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useEffect, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useRef } from 'react';
+import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { theme } from '../constants/theme';
 import { hp, wp } from '../helpers/common';
 import { useAuthStore } from '../stores/auth';
@@ -13,23 +13,24 @@ export default function FloatingMessageButton() {
   const { unreadCount } = messageStore;
   const { theme: currentTheme } = useThemeStore();
   const colors = currentTheme.colors;
+  const subscriptionRef = useRef(null);
 
-  // Load unread count when component mounts
+  // Load unread count and subscribe to updates when component mounts
   useEffect(() => {
     if (user?.id) {
-      messageStore.loadConversations(user.id);
+      // Initial load
+      messageStore.refreshUnreadCount(user.id);
+      
+      // Subscribe to real-time message updates
+      subscriptionRef.current = messageStore.subscribeToAllMessages(user.id);
     }
-  }, [user?.id]);
 
-  // Subscribe to real-time conversation updates
-  useEffect(() => {
-    if (!user?.id) return;
-
-    const interval = setInterval(() => {
-      messageStore.loadConversations(user.id);
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(interval);
+    return () => {
+      // Cleanup subscription
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+    };
   }, [user?.id]);
 
   const handlePress = () => {
@@ -59,20 +60,22 @@ export default function FloatingMessageButton() {
     },
     badge: {
       position: 'absolute',
-      top: 4,
-      right: 4,
-      width: 14,
-      height: 14,
-      borderRadius: 7,
-      backgroundColor: colors.background,
+      top: -4,
+      right: -4,
+      backgroundColor: theme.colors.rose,
+      borderRadius: 12,
+      minWidth: 24,
+      height: 24,
       justifyContent: 'center',
       alignItems: 'center',
+      paddingHorizontal: 6,
+      borderWidth: 2,
+      borderColor: colors.background,
     },
-    badgeDot: {
-      width: 10,
-      height: 10,
-      borderRadius: 5,
-      backgroundColor: theme.colors.rose,
+    badgeText: {
+      color: '#ffffff',
+      fontSize: 12,
+      fontWeight: '700',
     },
   }), [colors]);
 
@@ -85,7 +88,9 @@ export default function FloatingMessageButton() {
       <Ionicons name="chatbubble" size={24} color="white" />
       {unreadCount > 0 && (
         <View style={styles.badge}>
-          <View style={styles.badgeDot} />
+          <Text style={styles.badgeText}>
+            {unreadCount > 99 ? '99+' : unreadCount}
+          </Text>
         </View>
       )}
     </TouchableOpacity>

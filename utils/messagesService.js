@@ -292,8 +292,8 @@ export async function getUnreadCount(userId) {
  */
 export async function markConversationAsRead(conversationId, userId) {
   try {
-    await executeWithRetry(async () => {
-      const result = await withTimeout(
+  const result = await executeWithRetry(async () => {
+      const r = await withTimeout(
         supabase
           .from('messages')
           .update({ is_read: true, updated_at: new Date().toISOString() })
@@ -303,10 +303,44 @@ export async function markConversationAsRead(conversationId, userId) {
         10000
       );
 
-      if (result.error) throw result.error;
+      if (r.error) throw r.error;
+      return r;
     });
+    console.debug('[messagesService] markConversationAsRead result:', result);
+    // Also try to set read_status column if exists (some dbs have this alternate name)
+    try {
+      const r2 = await executeWithRetry(async () => {
+        return await withTimeout(
+          supabase
+            .from('messages')
+            .update({ read_status: true })
+            .eq('conversation_id', conversationId)
+            .neq('sender_id', 'eq', userId),
+          10000
+        );
+      });
+      console.debug('[messagesService] markConversationAsRead set read_status result:', r2);
+    } catch (err) {
+      // If column doesn't exist, ignore
+      console.debug('[messagesService] read_status update skipped or failed:', err?.message || err);
+    }
+    console.debug('[messagesService] markConversationAsRead completed for', conversationId, userId);
 
-    // Clear unread count cache
+    // Clear related caches: messages and conversations list for both participants
+    try {
+      // Fetch the conversation participants to clear their caches
+      const convRes = await supabase.from('conversations').select('participant_one,participant_two').eq('id', conversationId).maybeSingle();
+      if (!convRes.error && convRes.data) {
+        const p1 = convRes.data.participant_one;
+        const p2 = convRes.data.participant_two;
+        clearCache(`conversations_${p1}`);
+        clearCache(`conversations_${p2}`);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch conversation participants to clear cache:', err);
+    }
+
+    clearCache(`messages_${conversationId}`);
     clearCache(`unread_count_${userId}`);
 
     return true;

@@ -219,12 +219,13 @@ export default function MessageModal({ visible, onClose }) {
     },
   }), [colors]);
 
-  // Subscribe to real-time messages
+  // Subscribe to real-time messages and mark as read
   useEffect(() => {
     if (visible && currentConversation?.id && user?.id) {
+      // Subscribe to messages
       messageStore.subscribeToMessages(currentConversation.id, user.id);
 
-      // Mark messages as read
+      // Mark messages as read when opening conversation
       messageStore.markAsRead(currentConversation.id, user.id);
 
       return () => {
@@ -273,8 +274,9 @@ export default function MessageModal({ visible, onClose }) {
     }, 100);
   };
 
-  const handleBack = () => {
-    messageStore.backToConversations();
+  const handleBack = async () => {
+    // Provide user id for delayed reload with optimistic state
+    await messageStore.backToConversations(user?.id);
   };
 
   const renderMessage = ({ item, index }) => {
