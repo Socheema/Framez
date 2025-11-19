@@ -16,7 +16,6 @@ import Button from '../../components/Button';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
-import { useAuthStore } from '../../stores/auth';
 import { useThemeStore } from '../../stores/themeStore';
 import { supabase } from '../../utils/supabase';
 
@@ -57,12 +56,6 @@ export default function UpdatePassword() {
       paddingHorizontal: wp(5),
       paddingVertical: hp(3),
       paddingTop: Platform.OS === 'ios' ? hp(8) : hp(6),
-    },
-    backButton: {
-      position: 'absolute',
-      top: Platform.OS === 'ios' ? hp(8) : hp(3),
-      left: wp(5),
-      zIndex: 10,
     },
     icon: {
       alignSelf: 'center',
@@ -234,10 +227,6 @@ export default function UpdatePassword() {
       // Wait for user to see success message
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Clear the password recovery flag BEFORE signing out
-      const { clearPasswordRecovery } = useAuthStore.getState();
-      clearPasswordRecovery();
-
       // Sign out to clear the recovery session
       await supabase.auth.signOut({ scope: 'local' });
 
@@ -261,38 +250,8 @@ export default function UpdatePassword() {
   const handleCancel = async () => {
     setIsUpdating(true); // Prevent session check
     setPasswordUpdated(true); // Prevent any retries
-    
-    // Clear the password recovery flag FIRST
-    const { clearPasswordRecovery } = useAuthStore.getState();
-    clearPasswordRecovery();
-    
     // Sign out and go back to login
     await supabase.auth.signOut({ scope: 'local' });
-    
-    // Small delay to ensure state updates
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    router.replace('/login');
-  };
-
-  const handleBack = async () => {
-    console.log('[UPDATE_PASSWORD] Back button pressed - starting navigation');
-    setIsUpdating(true); // Prevent session check
-    setPasswordUpdated(true); // Prevent any retries
-    
-    // Clear the password recovery flag FIRST
-    console.log('[UPDATE_PASSWORD] Clearing password recovery flag');
-    const { clearPasswordRecovery } = useAuthStore.getState();
-    clearPasswordRecovery();
-    
-    // Sign out and go back to login
-    console.log('[UPDATE_PASSWORD] Signing out');
-    await supabase.auth.signOut({ scope: 'local' });
-    
-    // Small delay to ensure state updates
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('[UPDATE_PASSWORD] Navigating to /login');
     router.replace('/login');
   };
 
@@ -320,14 +279,6 @@ export default function UpdatePassword() {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.inner}>
-            {/* Back Button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-            >
-              <Ionicons name="arrow-back" size={24} color={colors.text} />
-            </TouchableOpacity>
-
             <Ionicons name="lock-closed" size={hp(8)} color={theme.colors.primary} style={styles.icon} />
 
             <Text style={styles.logo}>Set New Password</Text>

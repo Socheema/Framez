@@ -1,5 +1,5 @@
-import { supabase } from './supabase';
 import { clearCache } from './networkUtils';
+import { supabase } from './supabase';
 
 /**
  * Get total unread message count for user across all conversations
@@ -15,12 +15,12 @@ export async function getTotalUnreadCount(userId) {
       .from('conversations')
       .select('id')
       .or(`participant_one.eq.${userId},participant_two.eq.${userId}`);
-    
+
     if (convError) throw convError;
     if (!conversations || conversations.length === 0) return 0;
-    
+
     const conversationIds = conversations.map(c => c.id);
-    
+
     // Count unread messages in these conversations
     const { count, error } = await supabase
       .from('messages')
@@ -28,7 +28,7 @@ export async function getTotalUnreadCount(userId) {
       .in('conversation_id', conversationIds)
       .neq('sender_id', userId) // Not sent by current user
       .eq('is_read', false); // Unread messages
-    
+
     if (error) throw error;
     return count || 0;
   } catch (error) {
@@ -53,9 +53,9 @@ export async function markConversationAsRead(conversationId, userId) {
       .eq('conversation_id', conversationId)
       .neq('sender_id', userId) // Only mark received messages
       .eq('is_read', false); // Only unread messages
-    
+
     if (error) throw error;
-    
+
     // Clear related caches for conversation and user's unread count
     try {
       const convRes = await supabase.from('conversations').select('participant_one,participant_two').eq('id', conversationId).maybeSingle();
@@ -96,7 +96,7 @@ export async function getConversationUnreadCount(conversationId, userId) {
       .eq('conversation_id', conversationId)
       .neq('sender_id', userId) // Not sent by current user
       .eq('is_read', false); // Unread messages
-    
+
     if (error) throw error;
     return count || 0;
   } catch (error) {
@@ -122,14 +122,14 @@ export async function getMultipleConversationUnreadCounts(conversationIds, userI
       .in('conversation_id', conversationIds)
       .neq('sender_id', userId)
       .eq('is_read', false);
-    
+
     if (error) throw error;
     if (!unreadMessages) return {};
 
     // Count unread messages per conversation
     const counts = {};
     conversationIds.forEach(id => counts[id] = 0);
-    
+
     unreadMessages.forEach(msg => {
       counts[msg.conversation_id] = (counts[msg.conversation_id] || 0) + 1;
     });

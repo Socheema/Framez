@@ -12,7 +12,7 @@ FROM information_schema.columns
 WHERE table_name = 'messages' AND column_name = 'read_status';
 
 -- 3. Check actual messages in conversation 0d67a0fb-dc8a-4423-b95a-8d7537f0162e
-SELECT 
+SELECT
   id,
   conversation_id,
   sender_id,
@@ -33,7 +33,7 @@ WHERE conversation_id = '0d67a0fb-dc8a-4423-b95a-8d7537f0162e'
   AND is_read = false;
 
 -- 5. Check RLS policies on messages table
-SELECT 
+SELECT
   schemaname,
   tablename,
   policyname,

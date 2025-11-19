@@ -1,6 +1,5 @@
 // Removed direct base64/file-system imports; using shared upload utility
 import * as ImagePicker from 'expo-image-picker';
-import { Video } from 'expo-av';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -29,7 +28,7 @@ import { uploadImage } from '../../utils/uploadImage';
 
 export default function CreatePost() {
   const [caption, setCaption] = useState('');
-  const [selectedImage, setSelectedImage] = useState(null); // image or video asset
+  const [selectedImage, setSelectedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const addPost = usePostsStore((state) => state.addPost);
@@ -60,7 +59,7 @@ export default function CreatePost() {
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
         aspect: [4, 3],
         quality: 0.8,
@@ -79,7 +78,7 @@ export default function CreatePost() {
   const handlePost = async () => {
     // Validate inputs before starting upload
     if (!selectedImage?.uri) {
-      Alert.alert('Missing Media', 'Please select an image or video to post.');
+      Alert.alert('Missing Image', 'Please select an image to post.');
       return;
     }
     if (!caption.trim()) {
@@ -100,10 +99,10 @@ export default function CreatePost() {
         throw new Error('Image URI is missing');
       }
 
-  const rawExt = selectedImage.uri.split('.').pop()?.toLowerCase() || 'jpg';
-  const fileExt = rawExt === 'jpeg' ? 'jpg' : rawExt;
+      const imageExt = selectedImage.uri.split('.').pop()?.toLowerCase() || 'jpg';
+      const fileExt = imageExt === 'jpeg' ? 'jpg' : imageExt;
       const filePath = `${currentUser.id}/${Date.now()}.${fileExt}`;
-  const mediaUrl = await uploadImage(selectedImage.uri, 'posts', filePath);
+      const imageUrl = await uploadImage(selectedImage.uri, 'posts', filePath);
 
       const { data: profile } = await supabase
         .from('profiles')
@@ -115,7 +114,7 @@ export default function CreatePost() {
 
       const { data: newPost, error: postError } = await supabase
         .from('posts')
-  .insert([{ user_id: currentUser.id, caption: caption.trim(), image_url: mediaUrl }])
+        .insert([{ user_id: currentUser.id, caption: caption.trim(), image_url: imageUrl }])
         .select()
         .single();
 
@@ -297,31 +296,20 @@ export default function CreatePost() {
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Media Preview (Image or Video) */}
+        {/* Image Preview */}
         {selectedImage ? (
           <View style={styles.imageContainer}>
-            {(selectedImage.type?.startsWith('video') || /\.mp4$/i.test(selectedImage.uri)) ? (
-              <Video
-                source={{ uri: selectedImage.uri }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-                shouldPlay={false}
-                isMuted
-                useNativeControls
-              />
-            ) : (
-              <Image
-                source={{ uri: selectedImage.uri }}
-                style={styles.imagePreview}
-                resizeMode="cover"
-              />
-            )}
+            <Image
+              source={{ uri: selectedImage.uri }}
+              style={styles.imagePreview}
+              resizeMode="cover"
+            />
             <TouchableOpacity
               style={styles.changeImageButton}
               onPress={pickImage}
               disabled={loading}
             >
-              <Text style={styles.changeImageText}>Change Media</Text>
+              <Text style={styles.changeImageText}>Change Photo</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -332,9 +320,9 @@ export default function CreatePost() {
           >
             <View style={styles.imagePickerContent}>
               <Text style={styles.imagePickerIcon}>📷</Text>
-              <Text style={styles.imagePickerText}>Select Photo or Video</Text>
+              <Text style={styles.imagePickerText}>Select Photo</Text>
               <Text style={styles.imagePickerSubtext}>
-                Choose from your library (single file)
+                Choose from your library
               </Text>
             </View>
           </TouchableOpacity>

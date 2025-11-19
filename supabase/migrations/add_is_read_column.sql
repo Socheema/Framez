@@ -5,7 +5,7 @@
 -- =====================================================
 
 -- Step 1: Add is_read column if it doesn't exist
-ALTER TABLE public.messages 
+ALTER TABLE public.messages
 ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
 
 -- Step 2: Set existing messages as read (optional - depends on requirements)
@@ -13,15 +13,15 @@ ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
 -- UPDATE public.messages SET is_read = true WHERE is_read IS NULL;
 
 -- Step 3: Create index for faster queries on is_read column
-CREATE INDEX IF NOT EXISTS messages_is_read_idx 
+CREATE INDEX IF NOT EXISTS messages_is_read_idx
 ON public.messages(is_read);
 
 -- Step 4: Create composite index for conversation + read status queries
-CREATE INDEX IF NOT EXISTS messages_conversation_read_idx 
+CREATE INDEX IF NOT EXISTS messages_conversation_read_idx
 ON public.messages(conversation_id, is_read);
 
 -- Step 5: Create composite index for efficient unread counting
-CREATE INDEX IF NOT EXISTS messages_conversation_sender_read_idx 
+CREATE INDEX IF NOT EXISTS messages_conversation_sender_read_idx
 ON public.messages(conversation_id, sender_id, is_read);
 
 -- =====================================================

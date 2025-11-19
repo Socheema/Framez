@@ -79,11 +79,11 @@ const ConversationItem = ({ conversation, onPress, styles, colors }) => {
 
       <View style={styles.conversationContent}>
         <View style={styles.conversationHeader}>
-          <Text 
+          <Text
             style={[
               styles.conversationName,
               hasUnread && styles.conversationNameUnread
-            ]} 
+            ]}
             numberOfLines={1}
           >
             {userName}

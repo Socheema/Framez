@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { getMultipleConversationUnreadCounts, getTotalUnreadCount, markConversationAsRead, waitForConversationRead } from '../utils/messageHelpers';
 import {
     getMessages,
     getOrCreateConversation,
@@ -6,7 +7,6 @@ import {
     sendMessage as sendMessageService,
 } from '../utils/messagesService';
 import { supabase } from '../utils/supabase';
-import { getMultipleConversationUnreadCounts, getTotalUnreadCount, markConversationAsRead, waitForConversationRead } from '../utils/messageHelpers';
 
 export const useMessageStore = create((set, get) => ({
   // State
@@ -407,12 +407,12 @@ export const useMessageStore = create((set, get) => ({
         },
         async (payload) => {
           const newMessage = payload.new;
-          
+
           // If message is not from current user, refresh unread count
           if (newMessage.sender_id !== userId) {
             const totalUnread = await getTotalUnreadCount(userId);
             set({ unreadCount: totalUnread });
-            
+
             // Also update conversation list if loaded
             const { conversations, suppressImmediateRefresh } = get();
             if (!suppressImmediateRefresh && conversations.length > 0) {
@@ -430,7 +430,7 @@ export const useMessageStore = create((set, get) => ({
         },
         async (payload) => {
           const updatedMessage = payload.new;
-          
+
           // If message was marked as read, refresh unread count
           if (updatedMessage.is_read) {
             const totalUnread = await getTotalUnreadCount(userId);

@@ -86,16 +86,16 @@ The `messages` table needs an `is_read` column. Run the migration:
 -- Run this in Supabase SQL Editor
 -- File: supabase/migrations/add_is_read_column.sql
 
-ALTER TABLE public.messages 
+ALTER TABLE public.messages
 ADD COLUMN IF NOT EXISTS is_read BOOLEAN DEFAULT false;
 
-CREATE INDEX IF NOT EXISTS messages_is_read_idx 
+CREATE INDEX IF NOT EXISTS messages_is_read_idx
 ON public.messages(is_read);
 
-CREATE INDEX IF NOT EXISTS messages_conversation_read_idx 
+CREATE INDEX IF NOT EXISTS messages_conversation_read_idx
 ON public.messages(conversation_id, is_read);
 
-CREATE INDEX IF NOT EXISTS messages_conversation_sender_read_idx 
+CREATE INDEX IF NOT EXISTS messages_conversation_sender_read_idx
 ON public.messages(conversation_id, sender_id, is_read);
 ```
 

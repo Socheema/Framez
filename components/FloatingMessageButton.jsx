@@ -20,7 +20,7 @@ export default function FloatingMessageButton() {
     if (user?.id) {
       // Initial load
       messageStore.refreshUnreadCount(user.id);
-      
+
       // Subscribe to real-time message updates
       subscriptionRef.current = messageStore.subscribeToAllMessages(user.id);
     }

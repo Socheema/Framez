@@ -47,17 +47,11 @@ export async function uploadImage(imageUri, bucketName, filePath) {
       uploadData = decode(base64);
     }
 
-    // Determine content type (support common images + mp4 video)
-    const isVideo = fileExt === 'mp4';
-    const contentType = isVideo
-      ? 'video/mp4'
-      : `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
-
-    // Upload (use upsert true so avatar/media paths overwrite cleanly)
+    // Upload (use upsert true so avatar paths overwrite cleanly)
     const { data, error } = await supabase.storage
       .from(bucketName)
       .upload(filePath, uploadData, {
-        contentType,
+        contentType: `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`,
         cacheControl: '3600',
         upsert: true,
       });

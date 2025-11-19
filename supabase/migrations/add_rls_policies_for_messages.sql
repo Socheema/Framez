@@ -58,7 +58,7 @@ CREATE POLICY "Users can mark received messages as read" ON messages
   );
 
 -- Verify policies were created
-SELECT 
+SELECT
   tablename,
   policyname,
   permissive,
