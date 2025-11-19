@@ -17,6 +17,9 @@ module.exports = ({ config }) => {
     },
     android: {
       package: "com.framezsocial.app",
+      // Use Hermes on Android to improve JS startup performance in production builds.
+      // For managed Expo projects Hermes is enabled via the `jsEngine` field.
+      jsEngine: "hermes",
       versionCode: 1,
       adaptiveIcon: {
         backgroundColor: "#E41E3F"

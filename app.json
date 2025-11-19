@@ -13,6 +13,7 @@
     },
     "android": {
       "package": "com.framezsocial.app",
+      "jsEngine": "hermes",
       "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E41E3F"
