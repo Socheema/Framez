@@ -47,8 +47,8 @@ export default function RootLayout() {
     const inPostDetail = segments[0] === 'postDetail'; // Post detail page
     const inWelcome = segments[0] === undefined || segments[0] === 'welcome' || segments[0] === 'index';
 
-    // If user is on password reset pages, let those pages handle their own navigation
-    // Don't interfere with password reset/update flow
+    // If user is on password reset pages, let those pages handle their own navigation.
+    // Don't interfere with password reset/update flow, especially during signout and replace navigation.
     if (inUpdatePassword || inResetPassword) {
       return;
     }

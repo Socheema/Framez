@@ -15,6 +15,7 @@ import {
     TouchableOpacity,
     View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ConversationModal from '../../components/ConversationModal';
 import EditProfileModal from '../../components/EditProfileModal';
 import FloatingMessageButton from '../../components/FloatingMessageButton';
@@ -139,9 +140,20 @@ export default function Profile() {
   const messageStore = useMessageStore();
   const { theme } = useThemeStore();
   const colors = theme.colors;
+  const insets = useSafeAreaInsets();
+
   const styles = useMemo(() => StyleSheet.create({
     container: { flex: 1, backgroundColor: colors.background },
-    header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: wp(4), paddingTop: Platform.OS === 'ios' ? hp(8) : hp(3), paddingBottom: hp(1.5), borderBottomWidth: 1, borderBottomColor: colors.border },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingHorizontal: wp(4),
+      paddingTop: Platform.OS === 'ios' ? Math.max(insets.top, hp(6)) : Math.max(insets.top + hp(2), hp(5)),
+      paddingBottom: hp(1.5),
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border
+    },
     headerTitle: { fontSize: hp(2.5), fontWeight: theme.fonts.semibold, color: colors.text },
     logoutButton: { padding: wp(1) },
     loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background },
@@ -188,7 +200,7 @@ export default function Profile() {
     modalCancelButtonText: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: colors.text },
     modalConfirmButton: { flex: 1, paddingVertical: hp(1.7), borderRadius: theme.radius.lg, backgroundColor: theme.colors.rose, alignItems: 'center' },
     modalConfirmButtonText: { fontSize: hp(2), fontWeight: theme.fonts.semibold, color: '#fff' },
-  }), [colors, theme]);
+  }), [colors, theme, insets]);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -348,52 +360,69 @@ export default function Profile() {
 
     // Validate asset object
     if (!asset || !asset.uri) {
-      console.error('Invalid asset object:', asset);
+      console.error('[Profile] Invalid asset object:', asset);
       Alert.alert('Error', 'Invalid image selected. Please try again.');
       return;
     }
 
     try {
       setUploadingAvatar(true);
+      console.log('[Profile] Starting avatar upload for user:', user.id);
+
       const imageUri = asset.uri;
+      console.log('[Profile] Image URI:', imageUri);
+
       // Derive extension from asset metadata or URI
       let fileExt = 'jpg';
       if (asset.fileName) fileExt = asset.fileName.split('.').pop()?.toLowerCase() || 'jpg';
       else if (asset.type) fileExt = asset.type.split('/').pop()?.toLowerCase() || 'jpg';
       else if (imageUri && imageUri.includes('.')) fileExt = imageUri.split('.').pop()?.toLowerCase() || 'jpg';
       if (fileExt === 'jpeg') fileExt = 'jpg';
+
       // Consistent avatar path for upsert overwrite
       const filePath = `${user.id}/avatar.${fileExt}`;
+      console.log('[Profile] Upload path:', filePath);
+
       const publicUrl = await uploadImage(imageUri, 'avatars', filePath);
+      console.log('[Profile] Upload successful, public URL:', publicUrl);
 
       // Update profile in database
+      console.log('[Profile] Updating profile in database...');
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ avatar_url: publicUrl })
         .eq('id', user.id);
 
       if (updateError) {
-        console.error('Profile update error:', updateError);
+        console.error('[Profile] Profile update error:', updateError);
         throw updateError;
       }
 
+      console.log('[Profile] Database update successful');
+
       // Update local state immediately
       setLocalAvatarUrl(publicUrl);
+      console.log('[Profile] Local state updated');
 
       // Reload profile from auth store
-      const { data: updatedProfile } = await supabase
+      console.log('[Profile] Reloading profile from database...');
+      const { data: updatedProfile, error: fetchError } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (updatedProfile) {
+      if (fetchError) {
+        console.error('[Profile] Error fetching updated profile:', fetchError);
+      } else if (updatedProfile) {
+        console.log('[Profile] Profile reloaded successfully');
         useAuthStore.setState({ profile: updatedProfile });
       }
 
       Alert.alert('Success', 'Avatar updated successfully!');
+      console.log('[Profile] Avatar upload complete');
     } catch (error) {
-      console.error('Error uploading avatar:', error);
+      console.error('[Profile] Error uploading avatar:', error);
       let msg = 'Failed to upload avatar. ' + (error.message || 'Please try again.');
       Alert.alert('Upload Error', msg);
     } finally {

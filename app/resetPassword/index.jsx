@@ -2,15 +2,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View
+    ActivityIndicator,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TextInput,
+    TouchableOpacity,
+    View
 } from 'react-native';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
@@ -235,8 +235,8 @@ export default function ResetPassword() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       try {
-        // Sign out to clear the recovery session
-        const { error: signoutError } = await supabase.auth.signOut({ scope: 'local' });
+        // Sign out to clear the recovery session across all scopes (web needs global)
+        const { error: signoutError } = await supabase.auth.signOut({ scope: 'global' });
         if (signoutError) {
           console.warn('[ResetPassword] Signout warning (continuing anyway):', signoutError);
         } else {
@@ -256,9 +256,8 @@ export default function ResetPassword() {
       setConfirmPassword('');
       setMessage({ type: '', text: '' });
 
-      // Direct navigation - use /login (not /(auth)/login which might not exist in route structure)
-      // Replacing prevents back navigation to reset page
-      router.replace('/login');
+  // Direct navigation - replacing prevents back navigation to reset page
+  router.replace('/login?message=password-updated');
 
     } catch (err) {
       console.error('[ResetPassword] Unexpected error during password update:', err);

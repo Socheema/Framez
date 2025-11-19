@@ -16,11 +16,13 @@ import Button from '../../components/Button';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import { theme } from '../../constants/theme';
 import { hp, wp } from '../../helpers/common';
+import { useAuthStore } from '../../stores/auth';
 import { useThemeStore } from '../../stores/themeStore';
 import { supabase } from '../../utils/supabase';
 
 export default function UpdatePassword() {
   const { theme: currentTheme } = useThemeStore();
+  const { setPasswordRecovery } = useAuthStore();
   const colors = currentTheme.colors;
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -216,7 +218,7 @@ export default function UpdatePassword() {
         return;
       }
 
-      // Mark password as updated to prevent any retries
+  // Mark password as updated to prevent any retries
       setPasswordUpdated(true);
 
       setMessage({
@@ -224,17 +226,17 @@ export default function UpdatePassword() {
         text: 'Password updated successfully! Redirecting to login...',
       });
 
-      // Wait for user to see success message
-      await new Promise(resolve => setTimeout(resolve, 1500));
+  // Wait briefly so user sees the success message
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Sign out to clear the recovery session
-      await supabase.auth.signOut({ scope: 'local' });
+  // Clear recovery flag to avoid any global redirect logic interfering
+  setPasswordRecovery(false);
 
-      // Small delay to ensure signout completes
-      await new Promise(resolve => setTimeout(resolve, 300));
+  // Sign out GLOBALLY to ensure session and any refresh state are cleared on web
+  await supabase.auth.signOut({ scope: 'global' });
 
-      // Redirect to login with success message
-      router.replace('/login?message=password-updated');
+  // Navigate to login with a success message; replace to avoid back navigation
+  router.replace('/login?message=password-updated');
 
     } catch (err) {
       console.error('Password update error:', err);
@@ -251,7 +253,8 @@ export default function UpdatePassword() {
     setIsUpdating(true); // Prevent session check
     setPasswordUpdated(true); // Prevent any retries
     // Sign out and go back to login
-    await supabase.auth.signOut({ scope: 'local' });
+    setPasswordRecovery(false);
+    await supabase.auth.signOut({ scope: 'global' });
     router.replace('/login');
   };
 

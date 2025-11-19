@@ -19,7 +19,7 @@ import { useThemeStore } from '../../stores/themeStore';
 export default function Login() {
   const { theme: currentTheme } = useThemeStore();
   const colors = currentTheme.colors;
-  const { signIn, session } = useAuthStore();
+  const { signIn, session, isLoaded, isPasswordRecovery } = useAuthStore();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [validationError, setValidationError] = useState('');
@@ -30,11 +30,13 @@ export default function Login() {
 
   // 🔒 Redirect if already authenticated
   useEffect(() => {
-    if (session) {
+    // Only redirect when auth is fully loaded, a stable session exists,
+    // and we're not in a recovery flow that should stay on auth screens.
+    if (isLoaded && session && !isPasswordRecovery) {
       console.log('✅ Already authenticated - redirecting to tabs');
       router.replace('/tabs');
     }
-  }, [session]);
+  }, [session, isLoaded, isPasswordRecovery]);
 
   // Check for success message (e.g., password-updated)
   useEffect(() => {
