@@ -6,13 +6,13 @@ Fixed the follow/unfollow system to remove loading delays and ensure both follow
 ## Issues Fixed
 
 ### Issue 1: Loading Delay on Follow Action ✅
-**Problem:** Clicking "Follow" showed a loading spinner before updating to "Following"  
-**Solution:** Removed the `ActivityIndicator` and `isPending` disabled state from the follow button  
+**Problem:** Clicking "Follow" showed a loading spinner before updating to "Following"
+**Solution:** Removed the `ActivityIndicator` and `isPending` disabled state from the follow button
 **Result:** Button now updates instantly using optimistic updates already implemented in the store
 
 ### Issue 2: Unfollow Functionality ✅
-**Problem:** Unfollow button didn't work due to missing RLS policies  
-**Solution:** Created comprehensive RLS policies for the `follows` table  
+**Problem:** Unfollow button didn't work due to missing RLS policies
+**Solution:** Created comprehensive RLS policies for the `follows` table
 **Result:** Both follow and unfollow now work correctly and persist to database
 
 ## Files Modified

@@ -30,7 +30,7 @@ TO authenticated
 USING (true);
 
 -- Verify policies were created
-SELECT 
+SELECT
   tablename,
   policyname,
   permissive,
@@ -40,7 +40,7 @@ WHERE tablename = 'follows'
 ORDER BY cmd, policyname;
 
 -- Verify table structure (for documentation)
-SELECT 
+SELECT
   column_name,
   data_type,
   is_nullable,

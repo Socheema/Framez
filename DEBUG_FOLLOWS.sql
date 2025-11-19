@@ -2,7 +2,7 @@
 -- Run these in Supabase SQL Editor to diagnose and verify the follow system
 
 -- 1. Check if follows table exists and view structure
-SELECT 
+SELECT
   column_name,
   data_type,
   is_nullable,
@@ -12,7 +12,7 @@ WHERE table_name = 'follows'
 ORDER BY ordinal_position;
 
 -- 2. Check if RLS is enabled on follows table
-SELECT 
+SELECT
   schemaname,
   tablename,
   rowsecurity
@@ -20,7 +20,7 @@ FROM pg_tables
 WHERE tablename = 'follows';
 
 -- 3. Check RLS policies on follows table
-SELECT 
+SELECT
   schemaname,
   tablename,
   policyname,
@@ -34,7 +34,7 @@ WHERE tablename = 'follows'
 ORDER BY cmd, policyname;
 
 -- 4. View all follow relationships (for testing)
-SELECT 
+SELECT
   f.id,
   f.follower_id,
   f.following_id,
@@ -65,7 +65,7 @@ LIMIT 20;
 -- ) as is_following;
 
 -- 8. Find duplicate follow relationships (should return 0 rows with UNIQUE constraint)
-SELECT 
+SELECT
   follower_id,
   following_id,
   COUNT(*) as duplicate_count
@@ -74,7 +74,7 @@ GROUP BY follower_id, following_id
 HAVING COUNT(*) > 1;
 
 -- 9. Find self-follows (users following themselves - should return 0 rows)
-SELECT 
+SELECT
   f.*,
   p.username
 FROM follows f
@@ -108,7 +108,7 @@ AND following_id = 'TARGET_USER_ID_HERE';  -- Replace with target user ID
 */
 
 -- 13. View recent follow activity
-SELECT 
+SELECT
   f.id,
   f.created_at,
   p1.username as follower,
