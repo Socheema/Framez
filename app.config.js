@@ -61,9 +61,9 @@ module.exports = ({ config }) => {
       eas: {
         projectId: "9d0378d7-fd7e-471e-9c07-d95670d24c87",
       },
-      // Dynamic env vars (injected via .env or EAS secrets)
-      supabaseUrl: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      supabaseAnonKey: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      supabaseAnonKey:
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFsaWd4emVzeWNkY2NoeXpubmN3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjI3NjE5MTksImV4cCI6MjA3ODMzNzkxOX0.z0Uux9yaRgRX5racdcagN_Se818nfc9ZLBkIbPUk6Vw",
+      supabaseUrl: "https://qligxzesycdcchyznncw.supabase.co",
     },
   };
 };
